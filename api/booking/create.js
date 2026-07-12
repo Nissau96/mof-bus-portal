@@ -1,11 +1,18 @@
 import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
 import { getAuthUser } from "../_utils/getAuthUser.js";
+import { sendPowerAutomateEmail } from "../_utils/powerAutomateEmail.js";
 
 /**
  * Creates a daily bus ticket for the authenticated user.
  *
  * The actual ticket allocation is handled by the PostgreSQL function
  * book_ticket_atomic so that ticket numbers remain safe under concurrency.
+ *
+ * Power Automate email notifications are sent only when the user receives:
+ * 1. A confirmed ticket
+ * 2. A waiting-list position
+ *
+ * Email failure does not block the ticket booking.
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -79,6 +86,75 @@ export default async function handler(req, res) {
         dropoff_location: dropoffLocation,
       },
     });
+
+    /**
+     * Send Power Automate email only for new confirmed or waiting bookings.
+     *
+     * If result.status is "already_booked" or "already_waiting",
+     * no email is sent because the user did not receive a new booking.
+     */
+    try {
+      await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action: "power_automate_email_attempt",
+        details: {
+          result_status: result.status,
+          to: profile.email,
+          bus_route: busRoute,
+          dropoff_location: dropoffLocation,
+        },
+      });
+
+      if (result.status === "confirmed") {
+        await sendPowerAutomateEmail({
+          eventType: "ticket_confirmed",
+          to: profile.email,
+          fullName: profile.full_name,
+          subject: "Your Bus Ticket Confirmation",
+          message: "Your bus ticket has been confirmed successfully.",
+          ticketNumber: String(result.ticket_number).padStart(2, "0"),
+          travelDate: result.travel_date,
+          busRoute: result.bus_route,
+          dropoffLocation: result.dropoff_location,
+          departureWindow: "4:45 PM - 5:00 PM",
+        });
+      }
+
+      if (result.status === "waiting") {
+        await sendPowerAutomateEmail({
+          eventType: "waiting_list",
+          to: profile.email,
+          fullName: profile.full_name,
+          subject: "You Have Been Added to the Waiting List",
+          message:
+            "The bus is currently full. You have been added to the waiting list and will be notified if a seat becomes available.",
+          ticketNumber: `Waiting #${result.waiting_position}`,
+          travelDate: result.travel_date,
+          busRoute: result.bus_route,
+          dropoffLocation: result.dropoff_location,
+          departureWindow: "4:45 PM - 5:00 PM",
+        });
+      }
+
+      await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action: "power_automate_email_success",
+        details: {
+          result_status: result.status,
+          to: profile.email,
+        },
+      });
+    } catch (emailError) {
+      await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action: "power_automate_email_failed",
+        details: {
+          result_status: result.status,
+          to: profile.email,
+          error: emailError.message,
+        },
+      });
+    }
 
     return res.status(200).json(result);
   } catch (error) {

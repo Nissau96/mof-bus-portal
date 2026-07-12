@@ -55,7 +55,7 @@ export default function DashboardShell({ children }) {
           </a>
 
           <div className="flex items-center gap-2">
-            <a
+            {/* <a
               href="/book"
               className={`hidden rounded-xl px-4 py-2 text-sm font-bold transition sm:inline-flex ${isDark
                   ? "bg-white text-slate-950 hover:bg-emerald-100"
@@ -63,7 +63,7 @@ export default function DashboardShell({ children }) {
                 }`}
             >
               Book Ticket
-            </a>
+            </a> */}
 
             <button
               type="button"
