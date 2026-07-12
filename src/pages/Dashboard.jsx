@@ -16,7 +16,7 @@ import {
   USER_DASHBOARD_METRICS,
   USER_QUICK_ACTIONS,
 } from "../constants/dashboardData";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../context/useTheme";
 
 /**
  * Dashboard page.
