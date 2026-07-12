@@ -1,3 +1,4 @@
+import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -7,9 +8,8 @@ import { createClient } from "@supabase/supabase-js";
  * Never import this file inside src/ frontend files.
  */
 export function getSupabaseAdmin() {
-  const env = globalThis.process?.env;
-  const supabaseUrl = env?.SUPABASE_URL;
-  const serviceRoleKey = env?.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error("Missing Supabase server environment variables.");
