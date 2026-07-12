@@ -1,5 +1,6 @@
 import { BusFront, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "../../context/useTheme";
+import { signOutUser } from "../../lib/auth";
 
 /**
  * DashboardShell provides a shared dashboard layout.
@@ -25,6 +26,15 @@ export default function DashboardShell({ children }) {
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
+  async function handleLogout() {
+    try {
+      await signOutUser();
+      window.location.href = "/";
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
   return (
     <main className={`min-h-screen transition-colors ${pageClass}`}>
       <header className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}>
@@ -47,11 +57,10 @@ export default function DashboardShell({ children }) {
           <div className="flex items-center gap-2">
             <a
               href="/book"
-              className={`hidden rounded-xl px-4 py-2 text-sm font-bold transition sm:inline-flex ${
-                isDark
+              className={`hidden rounded-xl px-4 py-2 text-sm font-bold transition sm:inline-flex ${isDark
                   ? "bg-white text-slate-950 hover:bg-emerald-100"
                   : "bg-mof-primary text-white hover:bg-mof-primary-container"
-              }`}
+                }`}
             >
               Book Ticket
             </a>
@@ -59,11 +68,10 @@ export default function DashboardShell({ children }) {
             <button
               type="button"
               onClick={toggleTheme}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                isDark
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
+                }`}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
@@ -72,11 +80,10 @@ export default function DashboardShell({ children }) {
 
             <button
               type="button"
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${
-                isDark
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
+                }`}
               aria-label="Open menu"
             >
               <Menu size={22} />
@@ -84,11 +91,11 @@ export default function DashboardShell({ children }) {
 
             <button
               type="button"
-              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold lg:inline-flex ${
-                isDark
+              onClick={handleLogout}
+              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold lg:inline-flex ${isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
+                }`}
             >
               <LogOut size={17} />
               Logout

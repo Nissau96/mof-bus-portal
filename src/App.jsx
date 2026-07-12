@@ -4,9 +4,12 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BookTicket from "./pages/BookTicket";
 import SupabaseTest from "./pages/SupabaseTest";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 /**
  * Main application router.
+ *
+ * Private pages are wrapped with ProtectedRoute.
  */
 export default function App() {
   return (
@@ -14,9 +17,33 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/book" element={<BookTicket />} />
-        <Route path="/supabase-test" element={<SupabaseTest />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/book"
+          element={
+            <ProtectedRoute>
+              <BookTicket />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supabase-test"
+          element={
+            <ProtectedRoute>
+              <SupabaseTest />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
