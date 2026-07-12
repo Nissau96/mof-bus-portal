@@ -4,6 +4,8 @@ import AuthShell from "../components/auth/AuthShell";
 import AuthTabs from "../components/auth/AuthTabs";
 import FormInput from "../components/auth/FormInput";
 import RouteSelect from "../components/auth/RouteSelect";
+import DivisionSelect from "../components/auth/DivisionSelect";
+import BusRouteSelect from "../components/auth/BusRouteSelect";
 
 /**
  * Registration page.
@@ -15,16 +17,17 @@ export default function Register() {
   const [activeTab, setActiveTab] = useState("staff");
 
   const [form, setForm] = useState({
-    staffId: "",
-    fullName: "",
-    email: "",
-    phone: "",
-    dropoffLocation: "",
-    password: "",
-    confirmPassword: "",
-    acceptedTerms: false,
-  });
-
+  staffId: "",
+  fullName: "",
+  email: "",
+  phone: "",
+  division: "",
+  busRoute: "",
+  dropoffLocation: "",
+  password: "",
+  confirmPassword: "",
+  acceptedTerms: false,
+});
   function updateField(fieldName, value) {
     // Keeps all form state in one object.
     setForm((currentForm) => ({
@@ -34,26 +37,41 @@ export default function Register() {
   }
 
   function handleRegister(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    if (!form.acceptedTerms) {
-      alert("Please accept the Terms of Service and Privacy Policy.");
-      return;
-    }
-
-    // Placeholder only.
-    // In a later step, this will send the data to the registration API.
-    alert(
-      activeTab === "staff"
-        ? `Staff registration placeholder for: ${form.staffId}`
-        : `Intern/NSP registration placeholder for: ${form.email}`
-    );
+  if (form.password !== form.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
   }
+
+  if (!form.division) {
+    alert("Please select your division.");
+    return;
+  }
+
+  if (!form.busRoute) {
+    alert("Please select your bus route.");
+    return;
+  }
+
+  if (!form.dropoffLocation) {
+    alert("Please select your preferred drop-off location.");
+    return;
+  }
+
+  if (!form.acceptedTerms) {
+    alert("Please accept the Terms of Service and Privacy Policy.");
+    return;
+  }
+
+  // Placeholder only.
+  // In a later step, this will send the data to the registration API.
+  alert(
+    activeTab === "staff"
+      ? `Staff registration placeholder for: ${form.staffId}`
+      : `Intern/NSP registration placeholder for: ${form.email}`
+  );
+}
 
   return (
     <AuthShell
@@ -91,18 +109,28 @@ export default function Register() {
           onChange={(value) => updateField("email", value)}
         />
 
-        <FormInput
-          id="phone"
-          label="Phone Number"
-          placeholder="+233 XX XXX XXXX"
-          value={form.phone}
-          onChange={(value) => updateField("phone", value)}
-        />
+       <FormInput
+  id="phone"
+  label="Phone Number"
+  placeholder="+233 XX XXX XXXX"
+  value={form.phone}
+  onChange={(value) => updateField("phone", value)}
+/>
 
-        <RouteSelect
-          value={form.dropoffLocation}
-          onChange={(value) => updateField("dropoffLocation", value)}
-        />
+<DivisionSelect
+  value={form.division}
+  onChange={(value) => updateField("division", value)}
+/>
+
+<BusRouteSelect
+  value={form.busRoute}
+  onChange={(value) => updateField("busRoute", value)}
+/>
+
+<RouteSelect
+  value={form.dropoffLocation}
+  onChange={(value) => updateField("dropoffLocation", value)}
+/>
 
         <FormInput
           id="password"
