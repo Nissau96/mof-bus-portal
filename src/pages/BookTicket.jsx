@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,24 +11,46 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import BookingSummaryCard from "../components/booking/BookingSummaryCard";
 import RouteSelect from "../components/auth/RouteSelect";
-import { BOOKING_SUMMARY, ROUTE_SUMMARY } from "../constants/bookingData";
+import { ROUTE_SUMMARY } from "../constants/bookingData";
 import { BUS_ROUTES } from "../constants/busRoutes";
 import { useTheme } from "../context/useTheme";
+import { apiFetch } from "../lib/api";
 
 /**
  * BookTicket page.
  *
- * This is currently a frontend-only booking form.
- * Later, handleSubmit will call the Vercel backend API,
- * which will create a ticket in Supabase.
+ * This page now connects to the backend booking API.
+ * The backend creates a ticket or adds the user to the waiting list.
  */
 export default function BookTicket() {
   const { isDark } = useTheme();
 
   const [dropoffLocation, setDropoffLocation] = useState("");
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState(null);
+  const [bookingResult, setBookingResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  async function loadBookingData() {
+    try {
+      setIsLoading(true);
+
+      const [summaryData, ticketData] = await Promise.all([
+        apiFetch("/api/booking/summary"),
+        apiFetch("/api/booking/my-ticket"),
+      ]);
+
+      setSummary(summaryData);
+      setCurrentStatus(ticketData);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
 
     if (!dropoffLocation) {
@@ -36,10 +58,59 @@ export default function BookTicket() {
       return;
     }
 
-    // Placeholder confirmation.
-    // Later this will call POST /api/book-ticket.
-    setHasSubmitted(true);
+    try {
+      setIsSubmitting(true);
+
+      const data = await apiFetch("/api/booking/create", {
+        method: "POST",
+        body: JSON.stringify({
+          busRoute: "Adenta Bus",
+          dropoffLocation,
+        }),
+      });
+
+      setBookingResult(data);
+      await loadBookingData();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  useEffect(() => {
+    loadBookingData();
+  }, []);
+
+  const summaryCards = [
+    {
+      label: "Booking Status",
+      value: summary?.bookingStatus || "Loading",
+      description: "Available for today",
+      icon: CheckCircle2,
+    },
+    {
+      label: "Available Seats",
+      value: String(summary?.availableSeats ?? "-"),
+      description: "Current remaining capacity",
+      icon: TicketCheck,
+    },
+    {
+      label: "Waiting List",
+      value: String(summary?.waitingCount ?? "-"),
+      description: "Users currently waiting",
+      icon: Info,
+    },
+    {
+      label: "Travel Date",
+      value: summary?.travelDate || "Today",
+      description: "Weekday service only",
+      icon: MapPinned,
+    },
+  ];
+
+  const confirmedTicket = currentStatus?.ticket;
+  const waitingRecord = currentStatus?.waiting;
 
   return (
     <DashboardShell>
@@ -47,7 +118,9 @@ export default function BookTicket() {
         <a
           href="/dashboard"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
-            isDark ? "text-slate-300 hover:text-white" : "text-slate-600 hover:text-mof-primary"
+            isDark
+              ? "text-slate-300 hover:text-white"
+              : "text-slate-600 hover:text-mof-primary"
           }`}
         >
           <ArrowLeft size={17} />
@@ -85,7 +158,7 @@ export default function BookTicket() {
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {BOOKING_SUMMARY.map((item) => (
+        {summaryCards.map((item) => (
           <BookingSummaryCard
             key={item.label}
             label={item.label}
@@ -131,87 +204,141 @@ export default function BookTicket() {
                   isDark ? "text-slate-400" : "text-slate-600"
                 }`}
               >
-                A confirmed ticket will be allocated on a first-come,
-                first-served basis when the backend logic is connected.
+                A confirmed ticket is allocated on a first-come, first-served
+                basis. If the bus is full, you will be added to the waiting
+                list.
               </p>
             </div>
           </div>
 
-          <div className="mt-6">
-            <RouteSelect
-              value={dropoffLocation}
-              onChange={setDropoffLocation}
-            />
-          </div>
-
-          {hasSubmitted && (
+          {isLoading && (
             <div
-              className={`mt-5 flex items-start gap-3 rounded-2xl p-4 ${
+              className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${
+                isDark ? "bg-white/5 text-slate-300" : "bg-slate-50 text-slate-600"
+              }`}
+            >
+              Loading your current booking status...
+            </div>
+          )}
+
+          {confirmedTicket && (
+            <div
+              className={`mt-6 rounded-2xl p-5 ${
                 isDark
                   ? "bg-emerald-500/10 text-emerald-100"
                   : "bg-emerald-50 text-mof-primary"
               }`}
             >
-              <CheckCircle2 className="mt-0.5 shrink-0" size={20} />
-              <div>
-                <p className="font-bold">
-                  Booking placeholder submitted
-                </p>
-                <p className="mt-1 text-sm leading-6">
-                  Your selected drop-off location is{" "}
-                  <strong>{dropoffLocation}</strong>. Supabase booking logic
-                  will be connected in a later step.
-                </p>
-              </div>
+              <p className="text-sm font-bold uppercase tracking-wide">
+                Confirmed Ticket
+              </p>
+              <p className="mt-3 text-5xl font-black">
+                {String(confirmedTicket.ticket_number).padStart(2, "0")}
+              </p>
+              <p className="mt-3 text-sm leading-6">
+                Drop-off: <strong>{confirmedTicket.dropoff_location}</strong>
+              </p>
             </div>
           )}
 
-          <div
-            className={`mt-6 flex items-start gap-3 rounded-2xl p-4 ${
-              isDark ? "bg-white/5" : "bg-slate-50"
-            }`}
-          >
-            <Info
-              className={`mt-0.5 shrink-0 ${
-                isDark ? "text-slate-300" : "text-slate-500"
-              }`}
-              size={19}
-            />
-
-            <p
-              className={`text-sm leading-6 ${
-                isDark ? "text-slate-400" : "text-slate-600"
-              }`}
-            >
-              Each user can only hold one ticket per travel day. When the bus
-              is full, users will be added to the waiting list.
-            </p>
-          </div>
-
-          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <a
-              href="/dashboard"
-              className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-5 text-sm font-bold ${
+          {waitingRecord && (
+            <div
+              className={`mt-6 rounded-2xl p-5 ${
                 isDark
-                  ? "border-white/10 text-slate-300 hover:bg-white/10"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  ? "bg-amber-500/10 text-amber-100"
+                  : "bg-amber-50 text-amber-800"
               }`}
             >
-              Cancel
-            </a>
+              <p className="text-sm font-bold uppercase tracking-wide">
+                Waiting List
+              </p>
+              <p className="mt-3 text-5xl font-black">
+                #{waitingRecord.waiting_position}
+              </p>
+              <p className="mt-3 text-sm leading-6">
+                You will be promoted if a seat becomes available.
+              </p>
+            </div>
+          )}
 
-            <button
-              type="submit"
-              className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition ${
-                isDark
-                  ? "bg-white text-slate-950 hover:bg-emerald-100"
-                  : "bg-mof-primary text-white hover:bg-mof-primary-container"
-              }`}
-            >
-              Submit Booking
-              <ArrowRight size={18} />
-            </button>
-          </div>
+          {!confirmedTicket && !waitingRecord && (
+            <>
+              <div className="mt-6">
+                <RouteSelect
+                  value={dropoffLocation}
+                  onChange={setDropoffLocation}
+                />
+              </div>
+
+              {bookingResult && (
+                <div
+                  className={`mt-5 flex items-start gap-3 rounded-2xl p-4 ${
+                    isDark
+                      ? "bg-emerald-500/10 text-emerald-100"
+                      : "bg-emerald-50 text-mof-primary"
+                  }`}
+                >
+                  <CheckCircle2 className="mt-0.5 shrink-0" size={20} />
+                  <div>
+                    <p className="font-bold">
+                      {bookingResult.message}
+                    </p>
+                    <p className="mt-1 text-sm leading-6">
+                      Status: <strong>{bookingResult.status}</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={`mt-6 flex items-start gap-3 rounded-2xl p-4 ${
+                  isDark ? "bg-white/5" : "bg-slate-50"
+                }`}
+              >
+                <Info
+                  className={`mt-0.5 shrink-0 ${
+                    isDark ? "text-slate-300" : "text-slate-500"
+                  }`}
+                  size={19}
+                />
+
+                <p
+                  className={`text-sm leading-6 ${
+                    isDark ? "text-slate-400" : "text-slate-600"
+                  }`}
+                >
+                  Each user can only hold one ticket per travel day. When the
+                  bus is full, users will be added to the waiting list.
+                </p>
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <a
+                  href="/dashboard"
+                  className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-5 text-sm font-bold ${
+                    isDark
+                      ? "border-white/10 text-slate-300 hover:bg-white/10"
+                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  Cancel
+                </a>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isDark
+                      ? "bg-white text-slate-950 hover:bg-emerald-100"
+                      : "bg-mof-primary text-white hover:bg-mof-primary-container"
+                  }`}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Booking"}
+                  {!isSubmitting && <ArrowRight size={18} />}
+                </button>
+              </div>
+            </>
+          )}
         </form>
 
         <aside
