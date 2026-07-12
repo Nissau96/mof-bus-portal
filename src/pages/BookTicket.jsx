@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarClock,
   CheckCircle2,
   Info,
   MapPinned,
@@ -19,8 +20,11 @@ import { apiFetch } from "../lib/api";
 /**
  * BookTicket page.
  *
- * This page now connects to the backend booking API.
+ * This page connects to the backend booking API.
  * The backend creates a ticket or adds the user to the waiting list.
+ *
+ * Normal users do not see the waiting-list metric card because that is
+ * more appropriate for the admin dashboard.
  */
 export default function BookTicket() {
   const { isDark } = useTheme();
@@ -32,6 +36,12 @@ export default function BookTicket() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * Refreshes the booking summary and the user's current ticket status.
+   *
+   * This function is called after successful booking submission.
+   * It is not called directly inside useEffect to avoid React lint warnings.
+   */
   async function loadBookingData() {
     try {
       setIsLoading(true);
@@ -79,35 +89,101 @@ export default function BookTicket() {
   }
 
   useEffect(() => {
-    loadBookingData();
+    /**
+     * React lint rules discourage calling a state-updating function directly
+     * inside useEffect when that function is defined outside the effect.
+     *
+     * This local async function keeps the initial data load inside the effect
+     * and avoids the cascading-render warning.
+     */
+    async function loadInitialBookingData() {
+      try {
+        setIsLoading(true);
+
+        const [summaryData, ticketData] = await Promise.all([
+          apiFetch("/api/booking/summary"),
+          apiFetch("/api/booking/my-ticket"),
+        ]);
+
+        setSummary(summaryData);
+        setCurrentStatus(ticketData);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadInitialBookingData();
   }, []);
 
-  const summaryCards = [
-    {
-      label: "Booking Status",
-      value: summary?.bookingStatus || "Loading",
-      description: "Available for today",
-      icon: CheckCircle2,
-    },
-    {
-      label: "Available Seats",
-      value: String(summary?.availableSeats ?? "-"),
-      description: "Current remaining capacity",
-      icon: TicketCheck,
-    },
-    {
-      label: "Waiting List",
-      value: String(summary?.waitingCount ?? "-"),
-      description: "Users currently waiting",
-      icon: Info,
-    },
-    {
-      label: "Travel Date",
-      value: summary?.travelDate || "Today",
-      description: "Weekday service only",
-      icon: MapPinned,
-    },
-  ];
+  /**
+   * Normal user summary cards.
+   *
+   * Waiting List is intentionally hidden here because it is an admin-facing
+   * operational metric. The user will still see their own waiting-list status
+   * if they personally get placed on the waiting list.
+   */
+  /**
+ * Formats a date from YYYY-MM-DD to DD/MM/YYYY.
+ *
+ * Example:
+ * 2026-07-12 becomes 12/07/2026
+ */
+function formatDisplayDate(dateValue) {
+  if (!dateValue) {
+    return "-";
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+/**
+ * Gets the weekday name from a date.
+ *
+ * Example:
+ * 2026-07-12 becomes Sunday
+ */
+function getWeekdayName(dateValue) {
+  if (!dateValue) {
+    return "Loading";
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+  }).format(date);
+}
+
+const travelDate = summary?.travelDate;
+
+const summaryCards = [
+  {
+    label: "Booking Status",
+    value: summary?.bookingStatus || "Loading",
+    description: "Available for today",
+    icon: CheckCircle2,
+  },
+  {
+    label: "Available Seats",
+    value: String(summary?.availableSeats ?? "-"),
+    description: "Current remaining capacity",
+    icon: TicketCheck,
+  },
+  {
+    label: "Travel Date",
+    value: formatDisplayDate(travelDate),
+    description: getWeekdayName(travelDate),
+    icon: CalendarClock,
+  },
+];
 
   const confirmedTicket = currentStatus?.ticket;
   const waitingRecord = currentStatus?.waiting;
@@ -157,7 +233,7 @@ export default function BookTicket() {
         </div>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {summaryCards.map((item) => (
           <BookingSummaryCard
             key={item.label}
@@ -214,7 +290,9 @@ export default function BookTicket() {
           {isLoading && (
             <div
               className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${
-                isDark ? "bg-white/5 text-slate-300" : "bg-slate-50 text-slate-600"
+                isDark
+                  ? "bg-white/5 text-slate-300"
+                  : "bg-slate-50 text-slate-600"
               }`}
             >
               Loading your current booking status...
@@ -280,9 +358,7 @@ export default function BookTicket() {
                 >
                   <CheckCircle2 className="mt-0.5 shrink-0" size={20} />
                   <div>
-                    <p className="font-bold">
-                      {bookingResult.message}
-                    </p>
+                    <p className="font-bold">{bookingResult.message}</p>
                     <p className="mt-1 text-sm leading-6">
                       Status: <strong>{bookingResult.status}</strong>
                     </p>
