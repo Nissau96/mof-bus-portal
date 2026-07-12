@@ -1,8 +1,16 @@
 /**
  * MetricCard displays a single dashboard statistic.
- * It is reusable so that dashboard cards remain consistent.
+ * 
+ * The card supports both dark and light dashboard themes.
  */
-export default function MetricCard({ label, value, description, icon: Icon, tone }) {
+export default function MetricCard({
+  label,
+  value,
+  description,
+  icon: Icon,
+  tone,
+  isDark,
+}) {
   const toneClasses = {
     blue: "bg-blue-600 text-white",
     green: "bg-mof-primary text-white",
@@ -11,7 +19,13 @@ export default function MetricCard({ label, value, description, icon: Icon, tone
   };
 
   return (
-    <article className="rounded-2xl border border-white/5 bg-slate-800/90 p-5 shadow-sm">
+    <article
+      className={`rounded-2xl p-5 shadow-sm transition ${
+        isDark
+          ? "border border-white/5 bg-slate-800/90"
+          : "border border-slate-200 bg-white"
+      }`}
+    >
       <div className="flex items-start gap-4">
         <div
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
@@ -22,15 +36,27 @@ export default function MetricCard({ label, value, description, icon: Icon, tone
         </div>
 
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-300">
+          <p
+            className={`text-sm font-semibold ${
+              isDark ? "text-slate-300" : "text-slate-600"
+            }`}
+          >
             {label}
           </p>
 
-          <p className="mt-5 text-3xl font-bold tracking-tight text-white">
+          <p
+            className={`mt-5 text-3xl font-bold tracking-tight ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
+          >
             {value}
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p
+            className={`mt-1 text-xs leading-5 ${
+              isDark ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
             {description}
           </p>
         </div>

@@ -1,19 +1,17 @@
 import {
   CalendarCheck,
   Clock3,
-  ListChecks,
-  Route,
   TicketCheck,
   UserCheck,
-  Zap,
 } from "lucide-react";
 
 /**
- * Dashboard metric cards shown on the main dashboard.
- * For now, these values are placeholders.
- * Later, they will come from Supabase.
+ * User dashboard metric cards.
+ * 
+ * This is intentionally simplified for normal users.
+ * Admin users will later receive a separate admin dashboard with more metrics.
  */
-export const DASHBOARD_METRICS = [
+export const USER_DASHBOARD_METRICS = [
   {
     label: "Today’s Ticket #",
     value: "0",
@@ -28,39 +26,15 @@ export const DASHBOARD_METRICS = [
     icon: CalendarCheck,
     tone: "green",
   },
-  {
-    label: "Waiting List",
-    value: "0",
-    description: "Users currently waiting",
-    icon: ListChecks,
-    tone: "amber",
-  },
-  {
-    label: "Active Requests",
-    value: "2",
-    description: "Booking workflows in progress",
-    icon: Zap,
-    tone: "red",
-  },
 ];
 
 /**
- * Quick actions shown on the dashboard.
- * These link to future pages we will build.
+ * User dashboard quick actions.
+ * 
+ * Booking itself remains available through the main hero button,
+ * while this section focuses on user account and history actions.
  */
-export const QUICK_ACTIONS = [
-  {
-    label: "Book Ticket",
-    description: "Reserve your seat for today’s trip.",
-    href: "/book",
-    icon: TicketCheck,
-  },
-  {
-    label: "View Route",
-    description: "Check the approved drop-off route list.",
-    href: "/route",
-    icon: Route,
-  },
+export const USER_QUICK_ACTIONS = [
   {
     label: "Booking History",
     description: "View your previous ticket records.",
@@ -69,7 +43,7 @@ export const QUICK_ACTIONS = [
   },
   {
     label: "My Profile",
-    description: "Review your profile.",
+    description: "Review your staff or intern profile.",
     href: "/profile",
     icon: UserCheck,
   },
