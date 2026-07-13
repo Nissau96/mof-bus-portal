@@ -1,6 +1,138 @@
-import { BusFront, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Archive,
+  BadgeCheck,
+  BusFront,
+  CalendarDays,
+  ClipboardList,
+  Database,
+  FileSearch,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Settings,
+  ShieldCheck,
+  Sun,
+  TicketCheck,
+  UserRound,
+  UsersRound,
+  X,
+} from "lucide-react";
+
 import { useTheme } from "../../context/useTheme";
 import { signOutUser } from "../../lib/auth";
+import { apiFetch } from "../../lib/api";
+
+const mainNavItems = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Book Ticket",
+    href: "/book",
+    icon: TicketCheck,
+  },
+  {
+    label: "Booking History",
+    href: "/history",
+    icon: History,
+  },
+  {
+    label: "My Profile",
+    href: "/profile",
+    icon: UserRound,
+  },
+];
+
+const adminNavItems = [
+  {
+    label: "Admin Dashboard",
+    href: "/admin",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Today’s Tickets",
+    href: "/admin/tickets",
+    icon: TicketCheck,
+  },
+  {
+    label: "Passenger Manifest",
+    href: "/admin/manifest",
+    icon: ClipboardList,
+  },
+  {
+    label: "User Management",
+    href: "/admin/users",
+    icon: UsersRound,
+  },
+  {
+    label: "Privileged Users",
+    href: "/admin/privileged-users",
+    icon: BadgeCheck,
+  },
+  {
+    label: "Booking History",
+    href: "/admin/booking-history",
+    icon: Archive,
+  },
+  {
+    label: "Public Holidays",
+    href: "/admin/public-holidays",
+    icon: CalendarDays,
+  },
+  {
+    label: "System Settings",
+    href: "/admin/settings",
+    icon: Settings,
+  },
+  {
+    label: "System Maintenance",
+    href: "/admin/maintenance",
+    icon: Database,
+  },
+  {
+    label: "Audit Logs",
+    href: "/admin/audit-logs",
+    icon: FileSearch,
+  },
+];
+
+function getCurrentPath() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.location.pathname;
+}
+
+function NavLink({ item, isDark, onClick }) {
+  const Icon = item.icon;
+  const currentPath = getCurrentPath();
+  const isActive = currentPath === item.href;
+
+  return (
+    <a
+      href={item.href}
+      onClick={onClick}
+      className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold transition ${
+        isActive
+          ? isDark
+            ? "bg-white text-slate-950"
+            : "bg-mof-primary text-white"
+          : isDark
+            ? "text-slate-300 hover:bg-white/10 hover:text-white"
+            : "text-slate-600 hover:bg-emerald-50 hover:text-mof-primary"
+      }`}
+    >
+      <Icon size={17} />
+      <span>{item.label}</span>
+    </a>
+  );
+}
 
 /**
  * DashboardShell provides a shared dashboard layout.
@@ -8,13 +140,17 @@ import { signOutUser } from "../../lib/auth";
  * It includes:
  * - Top navigation
  * - Theme toggle
+ * - Admin navigation for admin users
  * - Dark/light page background
  * - Responsive content width
- *
- * The dashboard and booking page will both use this shell.
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentProfile, setCurrentProfile] = useState(null);
+
+  const isAdmin = currentProfile?.role === "admin";
 
   const pageClass = isDark
     ? "bg-slate-950 text-white"
@@ -26,6 +162,32 @@ export default function DashboardShell({ children }) {
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCurrentProfile() {
+      try {
+        const data = await apiFetch("/api/profile/me");
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCurrentProfile(data.profile || null);
+      } catch {
+        if (isMounted) {
+          setCurrentProfile(null);
+        }
+      }
+    }
+
+    loadCurrentProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   async function handleLogout() {
     try {
       await signOutUser();
@@ -33,6 +195,10 @@ export default function DashboardShell({ children }) {
     } catch (error) {
       alert(error.message);
     }
+  }
+
+  function closeMenu() {
+    setIsMenuOpen(false);
   }
 
   return (
@@ -45,9 +211,7 @@ export default function DashboardShell({ children }) {
             </div>
 
             <div>
-              <p className="text-sm font-bold leading-none">
-                MoF Bus Portal
-              </p>
+              <p className="text-sm font-bold leading-none">MoF Bus Portal</p>
               <p className={`mt-1 hidden text-xs sm:block ${mutedTextClass}`}>
                 Staff transport workspace
               </p>
@@ -55,23 +219,14 @@ export default function DashboardShell({ children }) {
           </a>
 
           <div className="flex items-center gap-2">
-            {/* <a
-              href="/book"
-              className={`hidden rounded-xl px-4 py-2 text-sm font-bold transition sm:inline-flex ${isDark
-                  ? "bg-white text-slate-950 hover:bg-emerald-100"
-                  : "bg-mof-primary text-white hover:bg-mof-primary-container"
-                }`}
-            >
-              Book Ticket
-            </a> */}
-
             <button
               type="button"
               onClick={toggleTheme}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${isDark
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${
+                isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-                }`}
+              }`}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
@@ -80,28 +235,114 @@ export default function DashboardShell({ children }) {
 
             <button
               type="button"
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${isDark
+              onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${
+                isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-                }`}
-              aria-label="Open menu"
+              }`}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
-              <Menu size={22} />
+              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
 
             <button
               type="button"
               onClick={handleLogout}
-              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold lg:inline-flex ${isDark
+              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold lg:inline-flex ${
+                isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
-                }`}
+              }`}
             >
               <LogOut size={17} />
               Logout
             </button>
           </div>
         </div>
+
+        <nav
+          className={`hidden border-t lg:block ${
+            isDark ? "border-white/10" : "border-slate-200"
+          }`}
+        >
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
+            {mainNavItems.map((item) => (
+              <NavLink key={item.href} item={item} isDark={isDark} />
+            ))}
+
+            {isAdmin && (
+              <>
+                <div
+                  className={`mx-2 h-6 w-px ${
+                    isDark ? "bg-white/10" : "bg-slate-200"
+                  }`}
+                />
+
+                {adminNavItems.map((item) => (
+                  <NavLink key={item.href} item={item} isDark={isDark} />
+                ))}
+              </>
+            )}
+          </div>
+        </nav>
+
+        {isMenuOpen && (
+          <div
+            className={`border-t px-4 py-4 lg:hidden ${
+              isDark
+                ? "border-white/10 bg-slate-950"
+                : "border-slate-200 bg-[#f7fbf3]"
+            }`}
+          >
+            <div className="space-y-1">
+              {mainNavItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  isDark={isDark}
+                  onClick={closeMenu}
+                />
+              ))}
+            </div>
+
+            {isAdmin && (
+              <div className="mt-5">
+                <p
+                  className={`mb-3 px-3 text-xs font-black uppercase tracking-[0.22em] ${
+                    isDark ? "text-slate-500" : "text-slate-400"
+                  }`}
+                >
+                  Admin Tools
+                </p>
+
+                <div className="space-y-1">
+                  {adminNavItems.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      isDark={isDark}
+                      onClick={closeMenu}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`mt-5 flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-bold ${
+                isDark
+                  ? "border-white/10 text-slate-300 hover:bg-white/10"
+                  : "border-slate-200 text-slate-700 hover:bg-white"
+              }`}
+            >
+              <LogOut size={17} />
+              Logout
+            </button>
+          </div>
+        )}
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
