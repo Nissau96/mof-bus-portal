@@ -5,13 +5,9 @@ import Dashboard from "./pages/Dashboard";
 import BookTicket from "./pages/BookTicket";
 import SupabaseTest from "./pages/SupabaseTest";
 import Profile from "./pages/Profile";
+import BookingHistory from "./pages/BookingHistory";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-/**
- * Main application router.
- *
- * Private pages are wrapped with ProtectedRoute.
- */
 export default function App() {
   return (
     <BrowserRouter>
@@ -33,6 +29,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <BookTicket />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <BookingHistory />
             </ProtectedRoute>
           }
         />
