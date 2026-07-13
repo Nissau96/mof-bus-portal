@@ -18,6 +18,44 @@ import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
 
 /**
+ * Formats a date from YYYY-MM-DD to DD/MM/YYYY.
+ *
+ * Example:
+ * 2026-07-12 becomes 12/07/2026
+ */
+function formatDisplayDate(dateValue) {
+  if (!dateValue) {
+    return "-";
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+/**
+ * Gets the weekday name from a date.
+ *
+ * Example:
+ * 2026-07-12 becomes Sunday
+ */
+function getWeekdayName(dateValue) {
+  if (!dateValue) {
+    return "Loading";
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+  }).format(date);
+}
+
+/**
  * BookTicket page.
  *
  * This page connects to the backend booking API.
@@ -38,10 +76,9 @@ export default function BookTicket() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /**
-   * Refreshes the booking summary and the user's current ticket status.
+   * Refreshes the booking summary, profile, and user's current ticket status.
    *
    * This function is called after successful booking submission.
-   * It is not called directly inside useEffect to avoid React lint warnings.
    */
   async function loadBookingData() {
     try {
@@ -67,18 +104,45 @@ export default function BookTicket() {
     }
   }
 
-  if (!profile?.bus_route) {
-    alert("Your profile does not have a bus route assigned. Please contact the transport administrator.");
-    return;
-  }
+  /**
+   * Handles ticket booking submission.
+   *
+   * The await expression must remain inside this async function.
+   */
+  async function handleSubmit(event) {
+    event.preventDefault();
 
-  const data = await apiFetch("/api/booking/create", {
-    method: "POST",
-    body: JSON.stringify({
-      busRoute: profile.bus_route,
-      dropoffLocation,
-    }),
-  });
+    if (!dropoffLocation) {
+      alert("Please select your preferred drop-off location.");
+      return;
+    }
+
+    if (!profile?.bus_route) {
+      alert(
+        "Your profile does not have a bus route assigned. Please contact the transport administrator."
+      );
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const data = await apiFetch("/api/booking/create", {
+        method: "POST",
+        body: JSON.stringify({
+          busRoute: profile.bus_route,
+          dropoffLocation,
+        }),
+      });
+
+      setBookingResult(data);
+      await loadBookingData();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     async function loadInitialBookingData() {
@@ -107,51 +171,6 @@ export default function BookTicket() {
 
     loadInitialBookingData();
   }, []);
-
-  /**
-   * Normal user summary cards.
-   *
-   * Waiting List is intentionally hidden here because it is an admin-facing
-   * operational metric. The user will still see their own waiting-list status
-   * if they personally get placed on the waiting list.
-   */
-  /**
- * Formats a date from YYYY-MM-DD to DD/MM/YYYY.
- *
- * Example:
- * 2026-07-12 becomes 12/07/2026
- */
-  function formatDisplayDate(dateValue) {
-    if (!dateValue) {
-      return "-";
-    }
-
-    const date = new Date(`${dateValue}T00:00:00`);
-
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  }
-
-  /**
-   * Gets the weekday name from a date.
-   *
-   * Example:
-   * 2026-07-12 becomes Sunday
-   */
-  function getWeekdayName(dateValue) {
-    if (!dateValue) {
-      return "Loading";
-    }
-
-    const date = new Date(`${dateValue}T00:00:00`);
-
-    return new Intl.DateTimeFormat("en-GB", {
-      weekday: "long",
-    }).format(date);
-  }
 
   const travelDate = summary?.travelDate;
 
@@ -184,10 +203,11 @@ export default function BookTicket() {
       <div className="mb-6">
         <a
           href="/dashboard"
-          className={`inline-flex items-center gap-2 text-sm font-bold ${isDark
-            ? "text-slate-300 hover:text-white"
-            : "text-slate-600 hover:text-mof-primary"
-            }`}
+          className={`inline-flex items-center gap-2 text-sm font-bold ${
+            isDark
+              ? "text-slate-300 hover:text-white"
+              : "text-slate-600 hover:text-mof-primary"
+          }`}
         >
           <ArrowLeft size={17} />
           Back to dashboard
@@ -196,22 +216,25 @@ export default function BookTicket() {
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p
-              className={`text-xs font-black uppercase tracking-[0.22em] ${isDark ? "text-emerald-200" : "text-mof-primary"
-                }`}
+              className={`text-xs font-black uppercase tracking-[0.22em] ${
+                isDark ? "text-emerald-200" : "text-mof-primary"
+              }`}
             >
               Daily Staff Transport
             </p>
 
             <h1
-              className={`mt-3 text-3xl font-black tracking-tight sm:text-4xl ${isDark ? "text-white" : "text-slate-950"
-                }`}
+              className={`mt-3 text-3xl font-black tracking-tight sm:text-4xl ${
+                isDark ? "text-white" : "text-slate-950"
+              }`}
             >
               Book Your Bus Ticket
             </h1>
 
             <p
-              className={`mt-3 max-w-2xl text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-                }`}
+              className={`mt-3 max-w-2xl text-sm leading-6 ${
+                isDark ? "text-slate-400" : "text-slate-600"
+              }`}
             >
               Select your preferred drop-off location and submit your booking
               request for today’s Ministry staff bus.
@@ -236,42 +259,48 @@ export default function BookTicket() {
       <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_380px]">
         <form
           onSubmit={handleSubmit}
-          className={`rounded-3xl p-5 sm:p-6 ${isDark
-            ? "border border-white/10 bg-slate-900"
-            : "border border-slate-200 bg-white"
-            }`}
+          className={`rounded-3xl p-5 sm:p-6 ${
+            isDark
+              ? "border border-white/10 bg-slate-900"
+              : "border border-slate-200 bg-white"
+          }`}
         >
           <div className="flex items-start gap-4">
             <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
-                ? "bg-white/10 text-emerald-200"
-                : "bg-emerald-50 text-mof-primary"
-                }`}
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+                isDark
+                  ? "bg-white/10 text-emerald-200"
+                  : "bg-emerald-50 text-mof-primary"
+              }`}
             >
               <TicketCheck size={22} />
             </div>
 
             <div>
               <h2
-                className={`text-xl font-black ${isDark ? "text-white" : "text-slate-950"
-                  }`}
+                className={`text-xl font-black ${
+                  isDark ? "text-white" : "text-slate-950"
+                }`}
               >
                 Ticket Request
               </h2>
 
               <p
-                className={`mt-1 text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-                  }`}
+                className={`mt-1 text-sm leading-6 ${
+                  isDark ? "text-slate-400" : "text-slate-600"
+                }`}
               >
                 A confirmed ticket is allocated on a first-come, first-served
                 basis. If the bus is full, you will be added to the waiting
                 list.
               </p>
+
               <div
-                className={`mt-4 inline-flex rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wide ${isDark
+                className={`mt-4 inline-flex rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wide ${
+                  isDark
                     ? "bg-white/10 text-emerald-200"
                     : "bg-emerald-50 text-mof-primary"
-                  }`}
+                }`}
               >
                 Assigned Bus Route: {profile?.bus_route || "Loading..."}
               </div>
@@ -280,10 +309,11 @@ export default function BookTicket() {
 
           {isLoading && (
             <div
-              className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${isDark
-                ? "bg-white/5 text-slate-300"
-                : "bg-slate-50 text-slate-600"
-                }`}
+              className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${
+                isDark
+                  ? "bg-white/5 text-slate-300"
+                  : "bg-slate-50 text-slate-600"
+              }`}
             >
               Loading your current booking status...
             </div>
@@ -291,10 +321,11 @@ export default function BookTicket() {
 
           {confirmedTicket && (
             <div
-              className={`mt-6 rounded-2xl p-5 ${isDark
-                ? "bg-emerald-500/10 text-emerald-100"
-                : "bg-emerald-50 text-mof-primary"
-                }`}
+              className={`mt-6 rounded-2xl p-5 ${
+                isDark
+                  ? "bg-emerald-500/10 text-emerald-100"
+                  : "bg-emerald-50 text-mof-primary"
+              }`}
             >
               <p className="text-sm font-bold uppercase tracking-wide">
                 Confirmed Ticket
@@ -310,10 +341,11 @@ export default function BookTicket() {
 
           {waitingRecord && (
             <div
-              className={`mt-6 rounded-2xl p-5 ${isDark
-                ? "bg-amber-500/10 text-amber-100"
-                : "bg-amber-50 text-amber-800"
-                }`}
+              className={`mt-6 rounded-2xl p-5 ${
+                isDark
+                  ? "bg-amber-500/10 text-amber-100"
+                  : "bg-amber-50 text-amber-800"
+              }`}
             >
               <p className="text-sm font-bold uppercase tracking-wide">
                 Waiting List
@@ -338,10 +370,11 @@ export default function BookTicket() {
 
               {bookingResult && (
                 <div
-                  className={`mt-5 flex items-start gap-3 rounded-2xl p-4 ${isDark
-                    ? "bg-emerald-500/10 text-emerald-100"
-                    : "bg-emerald-50 text-mof-primary"
-                    }`}
+                  className={`mt-5 flex items-start gap-3 rounded-2xl p-4 ${
+                    isDark
+                      ? "bg-emerald-500/10 text-emerald-100"
+                      : "bg-emerald-50 text-mof-primary"
+                  }`}
                 >
                   <CheckCircle2 className="mt-0.5 shrink-0" size={20} />
                   <div>
@@ -354,18 +387,21 @@ export default function BookTicket() {
               )}
 
               <div
-                className={`mt-6 flex items-start gap-3 rounded-2xl p-4 ${isDark ? "bg-white/5" : "bg-slate-50"
-                  }`}
+                className={`mt-6 flex items-start gap-3 rounded-2xl p-4 ${
+                  isDark ? "bg-white/5" : "bg-slate-50"
+                }`}
               >
                 <Info
-                  className={`mt-0.5 shrink-0 ${isDark ? "text-slate-300" : "text-slate-500"
-                    }`}
+                  className={`mt-0.5 shrink-0 ${
+                    isDark ? "text-slate-300" : "text-slate-500"
+                  }`}
                   size={19}
                 />
 
                 <p
-                  className={`text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-                    }`}
+                  className={`text-sm leading-6 ${
+                    isDark ? "text-slate-400" : "text-slate-600"
+                  }`}
                 >
                   Each user can only hold one ticket per travel day. When the
                   bus is full, users will be added to the waiting list.
@@ -375,10 +411,11 @@ export default function BookTicket() {
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <a
                   href="/dashboard"
-                  className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-5 text-sm font-bold ${isDark
-                    ? "border-white/10 text-slate-300 hover:bg-white/10"
-                    : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
+                  className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-5 text-sm font-bold ${
+                    isDark
+                      ? "border-white/10 text-slate-300 hover:bg-white/10"
+                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
                 >
                   Cancel
                 </a>
@@ -386,10 +423,11 @@ export default function BookTicket() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
-                    ? "bg-white text-slate-950 hover:bg-emerald-100"
-                    : "bg-mof-primary text-white hover:bg-mof-primary-container"
-                    }`}
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isDark
+                      ? "bg-white text-slate-950 hover:bg-emerald-100"
+                      : "bg-mof-primary text-white hover:bg-mof-primary-container"
+                  }`}
                 >
                   {isSubmitting ? "Submitting..." : "Submit Booking"}
                   {!isSubmitting && <ArrowRight size={18} />}
@@ -400,32 +438,36 @@ export default function BookTicket() {
         </form>
 
         <aside
-          className={`rounded-3xl p-5 sm:p-6 ${isDark
-            ? "border border-white/10 bg-slate-900"
-            : "border border-slate-200 bg-white"
-            }`}
+          className={`rounded-3xl p-5 sm:p-6 ${
+            isDark
+              ? "border border-white/10 bg-slate-900"
+              : "border border-slate-200 bg-white"
+          }`}
         >
           <div className="flex items-start gap-4">
             <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
-                ? "bg-white/10 text-emerald-200"
-                : "bg-emerald-50 text-mof-primary"
-                }`}
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+                isDark
+                  ? "bg-white/10 text-emerald-200"
+                  : "bg-emerald-50 text-mof-primary"
+              }`}
             >
               <ROUTE_SUMMARY.icon size={22} />
             </div>
 
             <div>
               <h2
-                className={`font-black ${isDark ? "text-white" : "text-slate-950"
-                  }`}
+                className={`font-black ${
+                  isDark ? "text-white" : "text-slate-950"
+                }`}
               >
                 {ROUTE_SUMMARY.title}
               </h2>
 
               <p
-                className={`mt-1 text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-                  }`}
+                className={`mt-1 text-sm leading-6 ${
+                  isDark ? "text-slate-400" : "text-slate-600"
+                }`}
               >
                 {ROUTE_SUMMARY.description}
               </p>
@@ -436,21 +478,24 @@ export default function BookTicket() {
             {BUS_ROUTES.map((route, index) => (
               <div
                 key={route}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2 ${isDark ? "bg-white/5" : "bg-slate-50"
-                  }`}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                  isDark ? "bg-white/5" : "bg-slate-50"
+                }`}
               >
                 <span
-                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-black ${isDark
-                    ? "bg-white/10 text-emerald-200"
-                    : "bg-emerald-50 text-mof-primary"
-                    }`}
+                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-black ${
+                    isDark
+                      ? "bg-white/10 text-emerald-200"
+                      : "bg-emerald-50 text-mof-primary"
+                  }`}
                 >
                   {index + 1}
                 </span>
 
                 <span
-                  className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"
-                    }`}
+                  className={`text-sm font-semibold ${
+                    isDark ? "text-slate-200" : "text-slate-700"
+                  }`}
                 >
                   {route}
                 </span>
@@ -459,8 +504,9 @@ export default function BookTicket() {
           </div>
 
           <div
-            className={`mt-6 rounded-2xl p-4 ${isDark ? "bg-white/5" : "bg-slate-50"
-              }`}
+            className={`mt-6 rounded-2xl p-4 ${
+              isDark ? "bg-white/5" : "bg-slate-50"
+            }`}
           >
             <div className="flex items-center gap-3">
               <MapPinned
@@ -468,8 +514,9 @@ export default function BookTicket() {
                 className={isDark ? "text-emerald-200" : "text-mof-primary"}
               />
               <p
-                className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-950"
-                  }`}
+                className={`text-sm font-bold ${
+                  isDark ? "text-white" : "text-slate-950"
+                }`}
               >
                 Assigned route: {profile?.bus_route || "Loading..."}
               </p>
