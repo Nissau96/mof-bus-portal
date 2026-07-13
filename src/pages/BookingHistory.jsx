@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   History,
   MapPinned,
@@ -11,6 +13,8 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+
+const ITEMS_PER_PAGE = 10;
 
 function formatDisplayDate(dateValue) {
   if (!dateValue) {
@@ -245,17 +249,107 @@ function HistoryCard({ item, isDark }) {
   );
 }
 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  startItem,
+  endItem,
+  onPageChange,
+  isDark,
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  return (
+    <div
+      className={`mt-6 rounded-3xl p-4 ${
+        isDark
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <p
+          className={`text-sm font-bold ${
+            isDark ? "text-slate-300" : "text-slate-600"
+          }`}
+        >
+          Showing {startItem} to {endItem} of {totalItems} booking records
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => onPageChange(currentPage - 1)}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDark
+                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          {pageNumbers.map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              onClick={() => onPageChange(pageNumber)}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
+                pageNumber === currentPage
+                  ? isDark
+                    ? "bg-white text-slate-950"
+                    : "bg-mof-primary text-white"
+                  : isDark
+                    ? "border border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => onPageChange(currentPage + 1)}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDark
+                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Booking History page.
  *
  * Shows the authenticated user's daily tickets, waiting-list records,
  * and archived booking records.
+ *
+ * Pagination:
+ * - 10 records per page
+ * - Pagination controls appear only when history exceeds 10 records
  */
 export default function BookingHistory() {
   const { isDark } = useTheme();
 
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function loadHistory() {
@@ -265,6 +359,7 @@ export default function BookingHistory() {
         const data = await apiFetch("/api/booking/history");
 
         setHistory(data.history || []);
+        setCurrentPage(1);
       } catch (error) {
         alert(error.message);
       } finally {
@@ -274,6 +369,34 @@ export default function BookingHistory() {
 
     loadHistory();
   }, []);
+
+  const totalItems = history.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  const paginatedHistory = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    return history.slice(startIndex, endIndex);
+  }, [history, currentPage]);
+
+  const startItem =
+    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+
+  function handlePageChange(pageNumber) {
+    if (pageNumber < 1 || pageNumber > totalPages) {
+      return;
+    }
+
+    setCurrentPage(pageNumber);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
 
   return (
     <DashboardShell>
@@ -405,11 +528,23 @@ export default function BookingHistory() {
       )}
 
       {!isLoading && history.length > 0 && (
-        <section className="mt-6 space-y-4">
-          {history.map((item) => (
-            <HistoryCard key={item.id} item={item} isDark={isDark} />
-          ))}
-        </section>
+        <>
+          <section className="mt-6 space-y-4">
+            {paginatedHistory.map((item) => (
+              <HistoryCard key={item.id} item={item} isDark={isDark} />
+            ))}
+          </section>
+
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            onPageChange={handlePageChange}
+            isDark={isDark}
+          />
+        </>
       )}
     </DashboardShell>
   );
