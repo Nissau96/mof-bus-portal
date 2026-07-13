@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
 import { getAuthUser } from "../_utils/getAuthUser.js";
 import { sendPowerAutomateEmail } from "../_utils/powerAutomateEmail.js";
+import { getBookingAvailability } from "../_utils/bookingRules.js";
+
 
 /**
  * Creates a daily bus ticket for the authenticated user.
@@ -59,6 +61,28 @@ export default async function handler(req, res) {
     if (profile.is_disabled) {
       return res.status(403).json({
         message: "Your account has been disabled.",
+      });
+    }
+    const availability = await getBookingAvailability({ supabase });
+
+    if (!availability.canBook) {
+      await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action: "ticket_booking_blocked",
+        details: {
+          reason: availability.reason,
+          booking_status: availability.bookingStatus,
+          attempted_at_time: availability.currentTime,
+          travel_date: availability.dateISO,
+          bus_route: busRoute,
+          dropoff_location: dropoffLocation,
+        },
+      });
+
+      return res.status(403).json({
+        message: availability.reason || "Booking is currently closed.",
+        bookingStatus: availability.bookingStatus,
+        canBook: false,
       });
     }
 

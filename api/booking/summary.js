@@ -1,29 +1,10 @@
 import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
 import { getAuthUser } from "../_utils/getAuthUser.js";
+import { getBookingAvailability } from "../_utils/bookingRules.js";
 
 /**
- * Returns the current booking summary:
- * - total capacity
- * - confirmed tickets
- * - available seats
- * - waiting-list count
+ * Returns today's booking summary for the authenticated user.
  */
-function formatTimeLabel(timeValue) {
-  if (!timeValue) {
-    return "";
-  }
-
-  const [hours, minutes] = String(timeValue).split(":");
-  const date = new Date();
-
-  date.setHours(Number(hours), Number(minutes), 0, 0);
-
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed." });
@@ -34,43 +15,29 @@ export default async function handler(req, res) {
 
     if (!user) {
       return res.status(401).json({
-        message: "You must be logged in to view booking summary.",
+        message: "You must be logged in to view the booking summary.",
       });
     }
 
     const supabase = getSupabaseAdmin();
-    const today = new Date().toISOString().slice(0, 10);
+    const availability = await getBookingAvailability({ supabase });
 
-    const { data: settings, error: settingsError } = await supabase
-      .from("system_settings")
-      .select("bus_capacity, departure_start_time, departure_end_time")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (settingsError) {
-      return res.status(500).json({
-        message: settingsError.message,
-      });
-    }
-
-    const capacity = settings?.bus_capacity || 36;
-
-    const { count: confirmedCount, error: countError } = await supabase
+    const { count: confirmedCount, error: confirmedError } = await supabase
       .from("daily_tickets")
       .select("*", { count: "exact", head: true })
-      .eq("travel_date", today)
+      .eq("travel_date", availability.dateISO)
       .eq("status", "confirmed");
 
-    if (countError) {
+    if (confirmedError) {
       return res.status(500).json({
-        message: countError.message,
+        message: confirmedError.message,
       });
     }
 
     const { count: waitingCount, error: waitingError } = await supabase
       .from("waiting_list")
       .select("*", { count: "exact", head: true })
-      .eq("travel_date", today)
+      .eq("travel_date", availability.dateISO)
       .eq("status", "waiting");
 
     if (waitingError) {
@@ -79,23 +46,17 @@ export default async function handler(req, res) {
       });
     }
 
-
-    const departureStart = formatTimeLabel(settings?.departure_start_time);
-    const departureEnd = formatTimeLabel(settings?.departure_end_time);
-    const departureWindow =
-      departureStart && departureEnd
-        ? `${departureStart} - ${departureEnd}`
-        : "4:45 PM - 5:00 PM";
-
-
     return res.status(200).json({
-      travelDate: today,
-      capacity,
+      travelDate: availability.dateISO,
+      capacity: availability.capacity,
       confirmedCount: confirmedCount || 0,
-      availableSeats: Math.max(capacity - (confirmedCount || 0), 0),
+      availableSeats: Math.max(availability.capacity - (confirmedCount || 0), 0),
       waitingCount: waitingCount || 0,
-      departureWindow: departureWindow,
-      bookingStatus: "Open",
+      departureWindow: availability.departureWindow,
+      bookingOpenTime: availability.bookingOpenTimeLabel,
+      bookingStatus: availability.bookingStatus,
+      bookingStatusReason: availability.reason,
+      canBook: availability.canBook,
     });
   } catch (error) {
     return res.status(500).json({
