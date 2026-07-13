@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Mail,
   MapPinned,
@@ -15,6 +17,8 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+
+const ITEMS_PER_PAGE = 10;
 
 function formatDisplayDate(dateValue) {
   if (!dateValue) {
@@ -65,9 +69,46 @@ function getStatusClass(status, isDark) {
       : "bg-amber-50 text-amber-800";
   }
 
+  if (status === "promoted") {
+    return isDark
+      ? "bg-blue-500/10 text-blue-200"
+      : "bg-blue-50 text-blue-700";
+  }
+
   return isDark
     ? "bg-white/10 text-slate-200"
     : "bg-slate-100 text-slate-700";
+}
+
+function InfoPill({ label, value, icon: Icon, isDark }) {
+  return (
+    <div className={`rounded-2xl p-4 ${isDark ? "bg-white/5" : "bg-slate-50"}`}>
+      <div className="flex items-start gap-3">
+        <Icon
+          size={18}
+          className={isDark ? "text-emerald-200" : "text-mof-primary"}
+        />
+
+        <div className="min-w-0">
+          <p
+            className={`text-xs font-bold uppercase tracking-wider ${
+              isDark ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
+            {label}
+          </p>
+
+          <p
+            className={`mt-1 break-words text-sm font-black ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
+          >
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function AdminRecordCard({ record, type, isDark }) {
@@ -180,33 +221,85 @@ function AdminRecordCard({ record, type, isDark }) {
   );
 }
 
-function InfoPill({ label, value, icon: Icon, isDark }) {
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  startItem,
+  endItem,
+  onPageChange,
+  isDark,
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+
   return (
     <div
-      className={`rounded-2xl p-4 ${
-        isDark ? "bg-white/5" : "bg-slate-50"
+      className={`mt-6 rounded-3xl p-4 ${
+        isDark
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <Icon
-          size={18}
-          className={isDark ? "text-emerald-200" : "text-mof-primary"}
-        />
-        <div className="min-w-0">
-          <p
-            className={`text-xs font-bold uppercase tracking-wider ${
-              isDark ? "text-slate-400" : "text-slate-500"
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <p
+          className={`text-sm font-bold ${
+            isDark ? "text-slate-300" : "text-slate-600"
+          }`}
+        >
+          Showing {startItem} to {endItem} of {totalItems} records
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={currentPage === 1}
+            onClick={() => onPageChange(currentPage - 1)}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDark
+                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
           >
-            {label}
-          </p>
-          <p
-            className={`mt-1 break-words text-sm font-black ${
-              isDark ? "text-white" : "text-slate-950"
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          {pageNumbers.map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              onClick={() => onPageChange(pageNumber)}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
+                pageNumber === currentPage
+                  ? isDark
+                    ? "bg-white text-slate-950"
+                    : "bg-mof-primary text-white"
+                  : isDark
+                    ? "border border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            disabled={currentPage === totalPages}
+            onClick={() => onPageChange(currentPage + 1)}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDark
+                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
           >
-            {value}
-          </p>
+            Next
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
     </div>
@@ -217,6 +310,10 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
  * Admin Tickets page.
  *
  * Allows admin users to view today's tickets and waiting-list records.
+ *
+ * Pagination:
+ * - 10 records per page
+ * - Applies independently to current tab and search result
  */
 export default function AdminTickets() {
   const { isDark } = useTheme();
@@ -227,6 +324,7 @@ export default function AdminTickets() {
   const [activeTab, setActiveTab] = useState("tickets");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function loadTickets() {
@@ -238,6 +336,7 @@ export default function AdminTickets() {
         setTickets(data.tickets || []);
         setWaitingList(data.waitingList || []);
         setTravelDate(data.travelDate || "");
+        setCurrentPage(1);
       } catch (error) {
         alert(error.message);
       } finally {
@@ -247,6 +346,16 @@ export default function AdminTickets() {
 
     loadTickets();
   }, []);
+
+  function handleTabChange(tabName) {
+    setActiveTab(tabName);
+    setCurrentPage(1);
+  }
+
+  function handleSearchChange(event) {
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
+  }
 
   const visibleRecords = activeTab === "tickets" ? tickets : waitingList;
 
@@ -274,6 +383,34 @@ export default function AdminTickets() {
         .some((value) => String(value).toLowerCase().includes(query));
     });
   }, [searchTerm, visibleRecords]);
+
+  const totalItems = filteredRecords.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    return filteredRecords.slice(startIndex, endIndex);
+  }, [filteredRecords, currentPage]);
+
+  const startItem =
+    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+
+  function handlePageChange(pageNumber) {
+    if (pageNumber < 1 || pageNumber > totalPages) {
+      return;
+    }
+
+    setCurrentPage(pageNumber);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
 
   return (
     <DashboardShell>
@@ -357,7 +494,7 @@ export default function AdminTickets() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setActiveTab("tickets")}
+              onClick={() => handleTabChange("tickets")}
               className={`rounded-xl px-4 py-2 text-sm font-black ${
                 activeTab === "tickets"
                   ? isDark
@@ -373,7 +510,7 @@ export default function AdminTickets() {
 
             <button
               type="button"
-              onClick={() => setActiveTab("waiting")}
+              onClick={() => handleTabChange("waiting")}
               className={`rounded-xl px-4 py-2 text-sm font-black ${
                 activeTab === "waiting"
                   ? isDark
@@ -396,10 +533,11 @@ export default function AdminTickets() {
             }`}
           >
             <Search size={17} />
+
             <input
               type="search"
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search name, email, division..."
               className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-inherit"
             />
@@ -432,16 +570,28 @@ export default function AdminTickets() {
       )}
 
       {!isLoading && filteredRecords.length > 0 && (
-        <section className="mt-6 space-y-4">
-          {filteredRecords.map((record) => (
-            <AdminRecordCard
-              key={record.id}
-              record={record}
-              type={activeTab === "waiting" ? "waiting" : "ticket"}
-              isDark={isDark}
-            />
-          ))}
-        </section>
+        <>
+          <section className="mt-6 space-y-4">
+            {paginatedRecords.map((record) => (
+              <AdminRecordCard
+                key={record.id}
+                record={record}
+                type={activeTab === "waiting" ? "waiting" : "ticket"}
+                isDark={isDark}
+              />
+            ))}
+          </section>
+
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startItem={startItem}
+            endItem={endItem}
+            onPageChange={handlePageChange}
+            isDark={isDark}
+          />
+        </>
       )}
     </DashboardShell>
   );
