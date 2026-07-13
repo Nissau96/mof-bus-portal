@@ -8,6 +8,9 @@ import { getAuthUser } from "../_utils/getAuthUser.js";
  * - current daily tickets
  * - current waiting-list records
  * - archived ticket records
+ *
+ * Note:
+ * archived_tickets uses archived_at instead of created_at.
  */
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -59,11 +62,11 @@ export default async function handler(req, res) {
       await supabase
         .from("archived_tickets")
         .select(
-          "id, travel_date, ticket_number, bus_route, dropoff_location, status, created_at"
+          "id, travel_date, ticket_number, bus_route, dropoff_location, status, archived_at"
         )
         .eq("user_id", user.id)
         .order("travel_date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("archived_at", { ascending: false });
 
     if (archivedTicketsError) {
       return res.status(500).json({
@@ -107,7 +110,7 @@ export default async function handler(req, res) {
       busRoute: ticket.bus_route,
       dropoffLocation: ticket.dropoff_location,
       status: ticket.status || "archived",
-      createdAt: ticket.created_at,
+      createdAt: ticket.archived_at,
     }));
 
     const history = [
