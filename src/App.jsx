@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminTickets from "./pages/AdminTickets";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
+import AdminAuditLogs from "./pages/AdminAuditLogs";
 
 export default function App() {
   return (
@@ -95,6 +96,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminSettings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <ProtectedRoute>
+              <AdminAuditLogs />
             </ProtectedRoute>
           }
         />
