@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  Archive,
-  BadgeCheck,
   BusFront,
-  CalendarDays,
-  ClipboardList,
-  Database,
   FileSearch,
-  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -15,7 +9,6 @@ import {
   Settings,
   ShieldCheck,
   Sun,
-  TicketCheck,
   UserRound,
   UsersRound,
   X,
@@ -25,24 +18,14 @@ import { useTheme } from "../../context/useTheme";
 import { signOutUser } from "../../lib/auth";
 import { apiFetch } from "../../lib/api";
 
-const mainNavItems = [
+const userNavItems = [
   {
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: "Book Ticket",
-    href: "/book",
-    icon: TicketCheck,
-  },
-  {
-    label: "Booking History",
-    href: "/history",
-    icon: History,
-  },
-  {
-    label: "My Profile",
+    label: "Profile",
     href: "/profile",
     icon: UserRound,
   },
@@ -50,39 +33,19 @@ const mainNavItems = [
 
 const adminNavItems = [
   {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
     label: "Admin Dashboard",
     href: "/admin",
     icon: ShieldCheck,
   },
   {
-    label: "Today’s Tickets",
-    href: "/admin/tickets",
-    icon: TicketCheck,
-  },
-  {
-    label: "Passenger Manifest",
-    href: "/admin/manifest",
-    icon: ClipboardList,
-  },
-  {
-    label: "User Management",
-    href: "/admin/users",
-    icon: UsersRound,
-  },
-  {
-    label: "Privileged Users",
-    href: "/admin/privileged-users",
-    icon: BadgeCheck,
-  },
-  {
-    label: "Booking History",
-    href: "/admin/booking-history",
-    icon: Archive,
-  },
-  {
-    label: "Public Holidays",
-    href: "/admin/public-holidays",
-    icon: CalendarDays,
+    label: "Profile",
+    href: "/profile",
+    icon: UserRound,
   },
   {
     label: "System Settings",
@@ -90,9 +53,9 @@ const adminNavItems = [
     icon: Settings,
   },
   {
-    label: "System Maintenance",
-    href: "/admin/maintenance",
-    icon: Database,
+    label: "User Management",
+    href: "/admin/users",
+    icon: UsersRound,
   },
   {
     label: "Audit Logs",
@@ -118,7 +81,7 @@ function NavLink({ item, isDark, onClick }) {
     <a
       href={item.href}
       onClick={onClick}
-      className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold transition ${
+      className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
         isActive
           ? isDark
             ? "bg-white text-slate-950"
@@ -137,12 +100,17 @@ function NavLink({ item, isDark, onClick }) {
 /**
  * DashboardShell provides a shared dashboard layout.
  *
- * It includes:
- * - Top navigation
- * - Theme toggle
- * - Admin navigation for admin users
- * - Dark/light page background
- * - Responsive content width
+ * Ordinary users see:
+ * - Dashboard
+ * - Profile
+ *
+ * Admin users see:
+ * - Dashboard
+ * - Admin Dashboard
+ * - Profile
+ * - System Settings
+ * - User Management
+ * - Audit Logs
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
@@ -151,6 +119,7 @@ export default function DashboardShell({ children }) {
   const [currentProfile, setCurrentProfile] = useState(null);
 
   const isAdmin = currentProfile?.role === "admin";
+  const visibleNavItems = isAdmin ? adminNavItems : userNavItems;
 
   const pageClass = isDark
     ? "bg-slate-950 text-white"
@@ -203,7 +172,9 @@ export default function DashboardShell({ children }) {
 
   return (
     <main className={`min-h-screen transition-colors ${pageClass}`}>
-      <header className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}>
+      <header
+        className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a href="/dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950">
@@ -261,31 +232,19 @@ export default function DashboardShell({ children }) {
           </div>
         </div>
 
-        <nav
+        <div
           className={`hidden border-t lg:block ${
             isDark ? "border-white/10" : "border-slate-200"
           }`}
         >
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6 lg:px-8">
-            {mainNavItems.map((item) => (
-              <NavLink key={item.href} item={item} isDark={isDark} />
-            ))}
-
-            {isAdmin && (
-              <>
-                <div
-                  className={`mx-2 h-6 w-px ${
-                    isDark ? "bg-white/10" : "bg-slate-200"
-                  }`}
-                />
-
-                {adminNavItems.map((item) => (
-                  <NavLink key={item.href} item={item} isDark={isDark} />
-                ))}
-              </>
-            )}
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+            <nav className="flex items-center gap-2 overflow-x-auto pb-1">
+              {visibleNavItems.map((item) => (
+                <NavLink key={item.href} item={item} isDark={isDark} />
+              ))}
+            </nav>
           </div>
-        </nav>
+        </div>
 
         {isMenuOpen && (
           <div
@@ -296,7 +255,7 @@ export default function DashboardShell({ children }) {
             }`}
           >
             <div className="space-y-1">
-              {mainNavItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <NavLink
                   key={item.href}
                   item={item}
@@ -305,29 +264,6 @@ export default function DashboardShell({ children }) {
                 />
               ))}
             </div>
-
-            {isAdmin && (
-              <div className="mt-5">
-                <p
-                  className={`mb-3 px-3 text-xs font-black uppercase tracking-[0.22em] ${
-                    isDark ? "text-slate-500" : "text-slate-400"
-                  }`}
-                >
-                  Admin Tools
-                </p>
-
-                <div className="space-y-1">
-                  {adminNavItems.map((item) => (
-                    <NavLink
-                      key={item.href}
-                      item={item}
-                      isDark={isDark}
-                      onClick={closeMenu}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
 
             <button
               type="button"
