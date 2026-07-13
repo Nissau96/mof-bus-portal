@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
-  BusFront,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Mail,
-  MapPinned,
-  Phone,
-  Search,
-  TicketCheck,
-  UserRound,
-  UsersRound,
+    ArrowLeft,
+    BusFront,
+    CalendarDays,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    Mail,
+    MapPinned,
+    Phone,
+    Search,
+    TicketCheck,
+    UserRound,
+    UsersRound,
 } from "lucide-react";
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+import { BUS_ROUTE_OPTIONS } from "../constants/busRoutesList";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -292,16 +293,25 @@ export default function AdminManifest() {
     const { isDark } = useTheme();
 
     const [travelDate, setTravelDate] = useState(getTodayISO());
+    const [selectedBusRoute, setSelectedBusRoute] = useState("all");
     const [manifest, setManifest] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
 
-    async function loadManifest(dateValue = travelDate) {
+    async function loadManifest(
+        dateValue = travelDate,
+        busRouteValue = selectedBusRoute
+    ) {
         try {
             setIsLoading(true);
 
-            const data = await apiFetch(`/api/admin/manifest?date=${dateValue}`);
+            const params = new URLSearchParams({
+                date: dateValue,
+                busRoute: busRouteValue,
+            });
+
+            const data = await apiFetch(`/api/admin/manifest?${params.toString()}`);
 
             setManifest(data.manifest || []);
             setCurrentPage(1);
@@ -320,7 +330,7 @@ export default function AdminManifest() {
         const nextDate = event.target.value;
 
         setTravelDate(nextDate);
-        loadManifest(nextDate);
+        loadManifest(nextDate, selectedBusRoute);
     }
 
     function handleSearchChange(event) {
@@ -340,7 +350,9 @@ export default function AdminManifest() {
             }
 
             const response = await fetch(
-                `/api/admin/manifest?date=${travelDate}&format=csv`,
+                `/api/admin/manifest?date=${encodeURIComponent(
+                    travelDate
+                )}&busRoute=${encodeURIComponent(selectedBusRoute)}&format=csv`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -358,7 +370,12 @@ export default function AdminManifest() {
             const link = document.createElement("a");
 
             link.href = url;
-            link.download = `mof-bus-manifest-${travelDate}.csv`;
+            const routeSlug =
+                selectedBusRoute === "all"
+                    ? "all-routes"
+                    : selectedBusRoute.toLowerCase().replaceAll(" ", "-");
+
+            link.download = `mof-bus-manifest-${travelDate}-${routeSlug}.csv`;
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -493,7 +510,7 @@ export default function AdminManifest() {
                     : "border border-slate-200 bg-white"
                     }`}
             >
-                <div className="grid gap-3 lg:grid-cols-[220px_1fr_auto] lg:items-center">
+                <div className="grid gap-3 lg:grid-cols-[220px_220px_1fr_auto] lg:items-center">
                     <input
                         type="date"
                         value={travelDate}
@@ -503,6 +520,22 @@ export default function AdminManifest() {
                             : "border-slate-200 bg-slate-50 text-slate-700"
                             }`}
                     />
+
+                    <select
+                        value={selectedBusRoute}
+                        onChange={handleBusRouteChange}
+                        className={`min-h-11 rounded-xl border px-4 text-sm font-black outline-none ${isDark
+                                ? "border-white/10 bg-slate-900 text-white"
+                                : "border-slate-200 bg-slate-50 text-slate-700"
+                            }`}
+                    >
+                        <option value="all">All Bus Routes</option>
+                        {BUS_ROUTE_OPTIONS.map((route) => (
+                            <option key={route} value={route}>
+                                {route}
+                            </option>
+                        ))}
+                    </select>
 
                     <label
                         className={`flex min-h-11 w-full items-center gap-3 rounded-xl border px-4 ${isDark
