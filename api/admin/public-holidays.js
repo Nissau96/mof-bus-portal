@@ -1,11 +1,17 @@
 import { requireAdmin } from "../_utils/requireAdmin.js";
+import { generateGhanaPublicHolidays } from "../_utils/ghanaHolidays.js";
 
 /**
- * Lists, adds, and deletes public holidays.
+ * Lists, adds, generates, and deletes public holidays.
  *
  * Admin-only endpoint.
  *
  * Booking is blocked when today's date exists in public_holidays.
+ *
+ * Supported methods:
+ * - GET: list public holidays
+ * - POST: add a manual holiday or generate Ghana holidays for a year
+ * - DELETE: remove a public holiday
  */
 export default async function handler(req, res) {
   try {
@@ -22,7 +28,10 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const { data: holidays, error } = await supabase
         .from("public_holidays")
-        .select("id, holiday_date, name, created_at")
+        .select(
+          "id, holiday_date, observed_date, base_date, name, holiday_type, source, year, created_at"
+        )
+        .order("observed_date", { ascending: false })
         .order("holiday_date", { ascending: false });
 
       if (error) {
@@ -37,8 +46,83 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { holidayDate, name } = req.body || {};
+      const { holidayDate, name, year, mode } = req.body || {};
 
+      /**
+       * Auto-generate Ghana holidays for a selected year.
+       *
+       * This creates:
+       * - New Year’s Day
+       * - Constitution Day
+       * - Independence Day
+       * - Good Friday
+       * - Easter Monday
+       * - Labour Day
+       * - Republic Day
+       * - Founder’s Day
+       * - Farmer’s Day
+       * - Christmas Day
+       * - Boxing Day
+       *
+       * Eid holidays are not generated because they must be entered manually
+       * when official dates are announced.
+       */
+      if (mode === "generate_year") {
+        const parsedYear = Number(year);
+
+        if (
+          !Number.isInteger(parsedYear) ||
+          parsedYear < 2025 ||
+          parsedYear > 2100
+        ) {
+          return res.status(400).json({
+            message: "Enter a valid year between 2025 and 2100.",
+          });
+        }
+
+        const generatedHolidays = generateGhanaPublicHolidays(parsedYear);
+
+        const { data: holidays, error: upsertError } = await supabase
+          .from("public_holidays")
+          .upsert(generatedHolidays, {
+            onConflict: "observed_date",
+          })
+          .select(
+            "id, holiday_date, observed_date, base_date, name, holiday_type, source, year, created_at"
+          );
+
+        if (upsertError) {
+          return res.status(500).json({
+            message: upsertError.message,
+          });
+        }
+
+        await supabase.from("audit_logs").insert({
+          user_id: adminUser.id,
+          action: "admin_generated_public_holidays",
+          details: {
+            year: parsedYear,
+            generated_count: holidays?.length || 0,
+            source: "ghana_holiday_generator",
+          },
+        });
+
+        return res.status(201).json({
+          message: `Ghana public holidays for ${parsedYear} have been generated.`,
+          holidays: holidays || [],
+        });
+      }
+
+      /**
+       * Manual holiday entry.
+       *
+       * Use this for:
+       * - Eid-ul-Fitr
+       * - Shaqq Day
+       * - Eid-ul-Adha
+       * - Any Ministry-declared additional holiday
+       * - Any one-off holiday
+       */
       const cleanedDate = String(holidayDate || "").trim();
       const cleanedName = String(name || "").trim();
 
@@ -62,19 +146,28 @@ export default async function handler(req, res) {
         });
       }
 
+      const parsedManualYear = Number(cleanedDate.slice(0, 4));
+
       const { data: holiday, error: insertError } = await supabase
         .from("public_holidays")
         .insert({
           holiday_date: cleanedDate,
+          observed_date: cleanedDate,
+          base_date: cleanedDate,
           name: cleanedName,
+          holiday_type: "manual",
+          source: "admin",
+          year: parsedManualYear,
         })
-        .select("id, holiday_date, name, created_at")
+        .select(
+          "id, holiday_date, observed_date, base_date, name, holiday_type, source, year, created_at"
+        )
         .single();
 
       if (insertError) {
         if (insertError.code === "23505") {
           return res.status(409).json({
-            message: "A public holiday already exists for this date.",
+            message: "A public holiday already exists for this observed date.",
           });
         }
 
@@ -89,7 +182,12 @@ export default async function handler(req, res) {
         details: {
           holiday_id: holiday.id,
           holiday_date: holiday.holiday_date,
+          observed_date: holiday.observed_date,
+          base_date: holiday.base_date,
           name: holiday.name,
+          holiday_type: holiday.holiday_type,
+          source: holiday.source,
+          year: holiday.year,
         },
       });
 
@@ -110,7 +208,9 @@ export default async function handler(req, res) {
 
       const { data: existingHoliday, error: existingError } = await supabase
         .from("public_holidays")
-        .select("id, holiday_date, name")
+        .select(
+          "id, holiday_date, observed_date, base_date, name, holiday_type, source, year"
+        )
         .eq("id", id)
         .maybeSingle();
 
@@ -143,7 +243,12 @@ export default async function handler(req, res) {
         details: {
           holiday_id: existingHoliday.id,
           holiday_date: existingHoliday.holiday_date,
+          observed_date: existingHoliday.observed_date,
+          base_date: existingHoliday.base_date,
           name: existingHoliday.name,
+          holiday_type: existingHoliday.holiday_type,
+          source: existingHoliday.source,
+          year: existingHoliday.year,
         },
       });
 

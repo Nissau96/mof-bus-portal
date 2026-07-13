@@ -89,11 +89,11 @@ export async function getBookingAvailability({ supabase }) {
     settings?.departure_end_time || "17:00:00"
   );
 
-  const { data: holiday, error: holidayError } = await supabase
-    .from("public_holidays")
-    .select("id, holiday_date, name")
-    .eq("holiday_date", dateISO)
-    .maybeSingle();
+ const { data: holiday, error: holidayError } = await supabase
+  .from("public_holidays")
+  .select("id, holiday_date, observed_date, base_date, name")
+  .or(`observed_date.eq.${dateISO},holiday_date.eq.${dateISO}`)
+  .maybeSingle();
 
   if (holidayError) {
     throw new Error(holidayError.message);
