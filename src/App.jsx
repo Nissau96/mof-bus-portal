@@ -12,6 +12,7 @@ import AdminTickets from "./pages/AdminTickets";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
+import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
 
 export default function App() {
   return (
@@ -105,6 +106,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminAuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/privileged-users"
+          element={
+            <ProtectedRoute>
+              <AdminPrivilegedUsers />
             </ProtectedRoute>
           }
         />
