@@ -31,8 +31,8 @@ export default async function handler(req, res) {
     const { data: profile, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, email, role, staff_id, phone, division, bus_route, dropoff_location, is_disabled"
-      )
+  "id, full_name, email, role, staff_id, phone, division, bus_route, dropoff_location, is_disabled"
+)
       .eq("id", user.id)
       .maybeSingle();
 

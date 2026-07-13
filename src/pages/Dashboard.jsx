@@ -17,7 +17,7 @@ import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
 
 /**
- * Formats a date like 2026-07-12 into Sunday, July 12.
+ * Formats a date like 2026-07-13 into Monday, July 13.
  */
 function formatHeroDate(dateValue) {
   if (!dateValue) {
@@ -34,11 +34,29 @@ function formatHeroDate(dateValue) {
 }
 
 /**
+ * Converts the database role value into a user-friendly label.
+ *
+ * Database values:
+ * - staff
+ * - intern_nsp
+ */
+function getRoleLabel(role) {
+  if (role === "intern_nsp") {
+    return "Intern/NSP";
+  }
+
+  if (role === "staff") {
+    return "Staff";
+  }
+
+  return "User";
+}
+
+/**
  * Dashboard page.
  *
- * This keeps the existing dashboard layout, cards, and quick action sections,
- * while loading live ticket, seat, profile, and schedule data from Supabase
- * through the backend API.
+ * This keeps the existing dashboard layout, metric cards, quick action cards,
+ * and hero card design while loading live data from Supabase through the API.
  */
 export default function Dashboard() {
   const { isDark } = useTheme();
@@ -76,6 +94,7 @@ export default function Dashboard() {
 
   const firstName = profile?.full_name?.split(" ")?.[0] || "User";
   const heroDate = formatHeroDate(summary?.travelDate);
+  const roleLabel = getRoleLabel(profile?.role);
 
   const confirmedTicket = ticketStatus?.ticket;
   const waitingRecord = ticketStatus?.waiting;
@@ -97,9 +116,10 @@ export default function Dashboard() {
    * Keep the existing metric cards from dashboardData.js,
    * but override the values dynamically.
    *
-   * This supports both labels:
+   * Supports:
    * - Today’s Ticket
    * - Today’s Ticket #
+   * - Available Seats
    */
   const dashboardMetrics = USER_DASHBOARD_METRICS.map((metric) => {
     const isTicketMetric =
@@ -130,6 +150,10 @@ export default function Dashboard() {
   });
 
   const scheduleItems = [
+    [
+      "Division",
+      isLoading ? "Loading" : profile?.division || "Not assigned",
+    ],
     [
       "Booking Status",
       isLoading ? "Loading" : summary?.bookingStatus || "Open",
@@ -209,7 +233,7 @@ export default function Dashboard() {
                     isDark ? "bg-white" : "bg-mof-primary"
                   }`}
                 />
-                {profile?.role === "intern_nsp" ? "Intern / NSP" : "Staff User"}
+                {roleLabel}
               </span>
 
               <span
@@ -219,7 +243,7 @@ export default function Dashboard() {
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
-                Transport Service
+                {profile?.division || "Division not assigned"}
               </span>
             </div>
           </div>
