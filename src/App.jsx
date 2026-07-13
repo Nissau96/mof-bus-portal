@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BookTicket from "./pages/BookTicket";
 import SupabaseTest from "./pages/SupabaseTest";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 /**
@@ -32,6 +33,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <BookTicket />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />
