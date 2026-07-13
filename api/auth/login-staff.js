@@ -1,37 +1,41 @@
+import process from "node:process";
+
+import { createClient } from "@supabase/supabase-js";
+
 import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
-import { getSupabaseAnon } from "../_utils/supabaseAnon.js";
 
 /**
- * Staff login endpoint.
+ * Staff/Admin login endpoint.
  *
- * Staff users log in with Staff ID + password.
- * Supabase Auth requires email + password, so this endpoint:
- * 1. Finds the user's email from profiles using staff_id.
- * 2. Checks that the user is an active staff user.
- * 3. Signs in using Supabase Auth.
- * 4. Returns the Supabase session to the frontend.
+ * Allows users with role "staff" or "admin" to log in using:
+ * - Staff ID
+ * - Password
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed." });
+    return res.status(405).json({
+      message: "Method not allowed.",
+    });
   }
 
   try {
-    const { staffId, password } = req.body;
+    const { staffId, password } = req.body || {};
 
-    if (!staffId || !password) {
+    const cleanedStaffId = String(staffId || "").trim();
+
+    if (!cleanedStaffId || !password) {
       return res.status(400).json({
         message: "Staff ID and password are required.",
       });
     }
 
-    const admin = getSupabaseAdmin();
+    const supabaseAdmin = getSupabaseAdmin();
 
-    const { data: profile, error: profileError } = await admin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, role, is_disabled")
-      .eq("staff_id", staffId)
-      .eq("role", "staff")
+      .select("id, email, staff_id, role, is_disabled")
+      .eq("staff_id", cleanedStaffId)
+      .in("role", ["staff", "admin"])
       .maybeSingle();
 
     if (profileError) {
@@ -48,40 +52,51 @@ export default async function handler(req, res) {
 
     if (profile.is_disabled) {
       return res.status(403).json({
-        message: "This account has been disabled.",
+        message: "Your account has been disabled. Please contact the administrator.",
       });
     }
 
-    const anon = getSupabaseAnon();
+    if (!profile.email) {
+      return res.status(400).json({
+        message: "No email address is attached to this Staff ID.",
+      });
+    }
 
-    const { data: signInData, error: signInError } =
-      await anon.auth.signInWithPassword({
+    const supabaseAnon = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
+
+    const { data: loginData, error: loginError } =
+      await supabaseAnon.auth.signInWithPassword({
         email: profile.email,
         password,
       });
 
-    if (signInError) {
+    if (loginError) {
       return res.status(401).json({
         message: "Invalid Staff ID or password.",
       });
     }
 
-    await admin.from("audit_logs").insert({
+    await supabaseAdmin.from("audit_logs").insert({
       user_id: profile.id,
-      action: "staff_login",
+      action: "staff_login_success",
       details: {
-        staff_id: staffId,
+        staff_id: cleanedStaffId,
+        role: profile.role,
       },
     });
 
     return res.status(200).json({
       message: "Login successful.",
-      session: signInData.session,
-      user: signInData.user,
+      user: loginData.user,
+      session: loginData.session,
+      profile,
     });
   } catch (error) {
     return res.status(500).json({
-      message: error.message || "Login failed.",
+      message: error.message || "Could not complete staff login.",
     });
   }
 }
