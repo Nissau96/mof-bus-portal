@@ -397,6 +397,44 @@ export default function AdminDashboard() {
       </section>
 
       <section
+  className={`mt-5 rounded-3xl p-5 sm:p-6 ${
+    isDark
+      ? "border border-white/10 bg-slate-900"
+      : "border border-slate-200 bg-white"
+  }`}
+>
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2
+        className={`text-xl font-black ${
+          isDark ? "text-white" : "text-slate-950"
+        }`}
+      >
+        Public Holidays
+      </h2>
+      <p
+        className={`mt-1 text-sm ${
+          isDark ? "text-slate-400" : "text-slate-600"
+        }`}
+      >
+        Manage dates where staff bus booking should automatically close.
+      </p>
+    </div>
+
+    <a
+      href="/admin/public-holidays"
+      className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
+        isDark
+          ? "bg-white text-slate-950 hover:bg-emerald-100"
+          : "bg-mof-primary text-white hover:bg-mof-primary-container"
+      }`}
+    >
+      Manage Public Holidays
+    </a>
+  </div>
+</section>
+
+      <section
         className={`mt-8 rounded-3xl p-5 sm:p-6 ${isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"

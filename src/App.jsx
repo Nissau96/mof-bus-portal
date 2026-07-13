@@ -14,7 +14,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
 import AdminBookingHistory from "./pages/AdminBookingHistory";
-
+import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 
 
 export default function App() {
@@ -127,6 +127,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminBookingHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/public-holidays"
+          element={
+            <ProtectedRoute>
+              <AdminPublicHolidays />
             </ProtectedRoute>
           }
         />
