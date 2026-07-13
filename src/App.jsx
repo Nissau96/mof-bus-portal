@@ -16,6 +16,7 @@ import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
 import AdminBookingHistory from "./pages/AdminBookingHistory";
 import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 import AdminMaintenance from "./pages/AdminMaintenance";
+import AdminManifest from "./pages/AdminManifest";
 
 export default function App() {
   return (
@@ -145,6 +146,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminMaintenance />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/manifest"
+          element={
+            <ProtectedRoute>
+              <AdminManifest />
             </ProtectedRoute>
           }
         />
