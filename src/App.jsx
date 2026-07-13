@@ -13,6 +13,9 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
+import AdminBookingHistory from "./pages/AdminBookingHistory";
+
+
 
 export default function App() {
   return (
@@ -115,6 +118,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminPrivilegedUsers />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/booking-history"
+          element={
+            <ProtectedRoute>
+              <AdminBookingHistory />
             </ProtectedRoute>
           }
         />
