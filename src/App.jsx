@@ -7,6 +7,7 @@ import SupabaseTest from "./pages/SupabaseTest";
 import Profile from "./pages/Profile";
 import BookingHistory from "./pages/BookingHistory";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   return (
@@ -56,6 +57,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SupabaseTest />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
