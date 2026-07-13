@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   CalendarDays,
   ClipboardList,
@@ -13,18 +14,139 @@ import {
   USER_QUICK_ACTIONS,
 } from "../constants/dashboardData";
 import { useTheme } from "../context/useTheme";
+import { apiFetch } from "../lib/api";
+
+/**
+ * Formats a date like 2026-07-12 into Sunday, July 12.
+ */
+function formatHeroDate(dateValue) {
+  if (!dateValue) {
+    return "Today";
+  }
+
+  const date = new Date(`${dateValue}T00:00:00`);
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
 
 /**
  * Dashboard page.
  *
- * This page now uses DashboardShell so the layout can be reused
- * by the booking page and future dashboard-related pages.
+ * This keeps the existing dashboard layout, cards, and quick action sections,
+ * while loading live ticket, seat, profile, and schedule data from Supabase
+ * through the backend API.
  */
 export default function Dashboard() {
-  const userName = "Ibrahim";
   const { isDark } = useTheme();
 
+  const [profile, setProfile] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [ticketStatus, setTicketStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setIsLoading(true);
+
+        const [profileData, summaryData, ticketData] = await Promise.all([
+          apiFetch("/api/profile/me"),
+          apiFetch("/api/booking/summary"),
+          apiFetch("/api/booking/my-ticket"),
+        ]);
+
+        setProfile(profileData.profile);
+        setSummary(summaryData);
+        setTicketStatus(ticketData);
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
+  const firstName = profile?.full_name?.split(" ")?.[0] || "User";
+  const heroDate = formatHeroDate(summary?.travelDate);
+
+  const confirmedTicket = ticketStatus?.ticket;
+  const waitingRecord = ticketStatus?.waiting;
+
+  let todayTicketValue = "-";
+  let todayTicketDescription = "No confirmed ticket yet";
+
+  if (confirmedTicket?.ticket_number) {
+    todayTicketValue = String(confirmedTicket.ticket_number).padStart(2, "0");
+    todayTicketDescription = "Your ticket number for today";
+  }
+
+  if (waitingRecord?.waiting_position) {
+    todayTicketValue = `Waiting #${waitingRecord.waiting_position}`;
+    todayTicketDescription = "You are currently on the waiting list";
+  }
+
+  /**
+   * Keep the existing metric cards from dashboardData.js,
+   * but override the values dynamically.
+   *
+   * This supports both labels:
+   * - Today’s Ticket
+   * - Today’s Ticket #
+   */
+  const dashboardMetrics = USER_DASHBOARD_METRICS.map((metric) => {
+    const isTicketMetric =
+      metric.label === "Today’s Ticket" ||
+      metric.label === "Today’s Ticket #";
+
+    const isAvailableSeatsMetric = metric.label === "Available Seats";
+
+    if (isTicketMetric) {
+      return {
+        ...metric,
+        value: isLoading ? "Loading" : todayTicketValue,
+        description: isLoading
+          ? "Checking today’s ticket number"
+          : todayTicketDescription,
+      };
+    }
+
+    if (isAvailableSeatsMetric) {
+      return {
+        ...metric,
+        value: isLoading ? "Loading" : String(summary?.availableSeats ?? "-"),
+        description: "Current remaining capacity",
+      };
+    }
+
+    return metric;
+  });
+
+  const scheduleItems = [
+    [
+      "Booking Status",
+      isLoading ? "Loading" : summary?.bookingStatus || "Open",
+    ],
+    [
+      "Departure Window",
+      summary?.departureWindow || "4:45 PM - 5:00 PM",
+    ],
+    [
+      "Assigned Bus Route",
+      profile?.bus_route || "Not assigned",
+    ],
+    [
+      "Drop-off Location",
+      profile?.dropoff_location || "Not selected",
+    ],
+  ];
 
   return (
     <DashboardShell>
@@ -54,7 +176,7 @@ export default function Dashboard() {
                 isDark ? "text-white/80" : "text-mof-primary"
               }`}
             >
-              Good morning, {userName} • Sunday, July 12
+              Good morning, {firstName} • {heroDate}
             </p>
 
             <h1
@@ -70,7 +192,8 @@ export default function Dashboard() {
                 isDark ? "text-white" : "text-slate-700"
               }`}
             >
-              Your staff transport bookings, ticket status, and route tasks in one place.
+              Your staff transport bookings, ticket status, and route tasks in
+              one place.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -86,7 +209,7 @@ export default function Dashboard() {
                     isDark ? "bg-white" : "bg-mof-primary"
                   }`}
                 />
-                Staff User
+                {profile?.role === "intern_nsp" ? "Intern / NSP" : "Staff User"}
               </span>
 
               <span
@@ -158,7 +281,7 @@ export default function Dashboard() {
                   : "bg-mof-primary text-white hover:bg-mof-primary-container"
               }`}
             >
-              Book ticket now
+              {confirmedTicket ? "View today’s ticket" : "Book ticket now"}
             </a>
           </div>
         </aside>
@@ -166,7 +289,7 @@ export default function Dashboard() {
 
       {/* User metrics */}
       <section className="mt-8 grid gap-4 sm:grid-cols-2">
-        {USER_DASHBOARD_METRICS.map((metric) => (
+        {dashboardMetrics.map((metric) => (
           <MetricCard
             key={metric.label}
             label={metric.label}
@@ -190,9 +313,7 @@ export default function Dashboard() {
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-black">
-                Quick Actions
-              </h2>
+              <h2 className="text-xl font-black">Quick Actions</h2>
               <p className={`mt-1 text-sm ${mutedTextClass}`}>
                 Common user tasks for your transport account.
               </p>
@@ -243,9 +364,7 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <h2 className="font-black">
-                Today’s Schedule
-              </h2>
+              <h2 className="font-black">Today’s Schedule</h2>
               <p className={`text-sm ${mutedTextClass}`}>
                 Ministry staff bus
               </p>
@@ -253,11 +372,7 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {[
-              ["Booking Status", "Open"],
-              ["Departure Window", "4:45 PM - 5:00 PM"],
-              ["Route Ends At", "Adenta"],
-            ].map(([label, value]) => (
+            {scheduleItems.map(([label, value]) => (
               <div
                 key={label}
                 className={`rounded-2xl p-4 ${
