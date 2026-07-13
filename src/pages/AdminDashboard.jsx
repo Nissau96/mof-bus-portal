@@ -224,7 +224,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      <section
+      {/* <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
@@ -256,9 +256,9 @@ export default function AdminDashboard() {
             Manage Settings
           </a>
         </div>
-      </section>
+      </section> */}
 
-      <section
+      {/* <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
@@ -291,9 +291,9 @@ export default function AdminDashboard() {
             View Audit Logs
           </a>
         </div>
-      </section>
+      </section> */}
 
-      <section
+      {/* <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
@@ -325,7 +325,7 @@ export default function AdminDashboard() {
             View Users
           </a>
         </div>
-      </section>
+      </section> */}
 
       <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
@@ -430,7 +430,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      <section
+      {/* <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
@@ -462,7 +462,7 @@ export default function AdminDashboard() {
             Open Maintenance
           </a>
         </div>
-      </section>
+      </section> */}
 
       <section
         className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
