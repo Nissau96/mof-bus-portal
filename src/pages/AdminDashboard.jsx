@@ -109,8 +109,8 @@ export default function AdminDashboard() {
         <a
           href="/dashboard"
           className={`inline-flex items-center gap-2 text-sm font-bold ${isDark
-              ? "text-slate-300 hover:text-white"
-              : "text-slate-600 hover:text-mof-primary"
+            ? "text-slate-300 hover:text-white"
+            : "text-slate-600 hover:text-mof-primary"
             }`}
         >
           <ArrowLeft size={17} />
@@ -120,8 +120,8 @@ export default function AdminDashboard() {
 
       <section
         className={`relative overflow-hidden rounded-3xl p-6 shadow-sm sm:p-8 ${isDark
-            ? "border border-white/10 bg-[#3e5048]"
-            : "border border-slate-200 bg-white"
+          ? "border border-white/10 bg-[#3e5048]"
+          : "border border-slate-200 bg-white"
           }`}
       >
         <div
@@ -155,8 +155,8 @@ export default function AdminDashboard() {
           <div className="mt-6 flex flex-wrap gap-3">
             <span
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${isDark
-                  ? "bg-slate-950/40 text-white"
-                  : "bg-emerald-50 text-mof-primary"
+                ? "bg-slate-950/40 text-white"
+                : "bg-emerald-50 text-mof-primary"
                 }`}
             >
               <ShieldCheck size={15} />
@@ -165,8 +165,8 @@ export default function AdminDashboard() {
 
             <span
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold ${isDark
-                  ? "border-white/10 bg-white/10 text-white/80"
-                  : "border-slate-200 bg-white text-slate-600"
+                ? "border-white/10 bg-white/10 text-white/80"
+                : "border-slate-200 bg-white text-slate-600"
                 }`}
             >
               <Clock3 size={15} />
@@ -192,8 +192,8 @@ export default function AdminDashboard() {
 
       <section
         className={`mt-8 rounded-3xl p-5 sm:p-6 ${isDark
-            ? "border border-white/10 bg-slate-900"
-            : "border border-slate-200 bg-white"
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
           }`}
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -215,8 +215,8 @@ export default function AdminDashboard() {
           <a
             href="/admin/tickets"
             className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition ${isDark
-                ? "bg-white text-slate-950 hover:bg-emerald-100"
-                : "bg-mof-primary text-white hover:bg-mof-primary-container"
+              ? "bg-white text-slate-950 hover:bg-emerald-100"
+              : "bg-mof-primary text-white hover:bg-mof-primary-container"
               }`}
           >
             View Today’s Tickets
@@ -225,9 +225,43 @@ export default function AdminDashboard() {
       </section>
 
       <section
-        className={`mt-8 rounded-3xl p-5 sm:p-6 ${isDark
+        className={`mt-5 rounded-3xl p-5 sm:p-6 ${isDark
             ? "border border-white/10 bg-slate-900"
             : "border border-slate-200 bg-white"
+          }`}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2
+              className={`text-xl font-black ${isDark ? "text-white" : "text-slate-950"
+                }`}
+            >
+              User Management
+            </h2>
+            <p
+              className={`mt-1 text-sm ${isDark ? "text-slate-400" : "text-slate-600"
+                }`}
+            >
+              View registered users, roles, divisions, routes, and account status.
+            </p>
+          </div>
+
+          <a
+            href="/admin/users"
+            className={`inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition ${isDark
+                ? "bg-white text-slate-950 hover:bg-emerald-100"
+                : "bg-mof-primary text-white hover:bg-mof-primary-container"
+              }`}
+          >
+            View Users
+          </a>
+        </div>
+      </section>
+
+      <section
+        className={`mt-8 rounded-3xl p-5 sm:p-6 ${isDark
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
           }`}
       >
         <h2
