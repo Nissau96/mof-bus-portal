@@ -8,6 +8,22 @@ import { getAuthUser } from "../_utils/getAuthUser.js";
  * - available seats
  * - waiting-list count
  */
+function formatTimeLabel(timeValue) {
+  if (!timeValue) {
+    return "";
+  }
+
+  const [hours, minutes] = String(timeValue).split(":");
+  const date = new Date();
+
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed." });
@@ -63,13 +79,22 @@ export default async function handler(req, res) {
       });
     }
 
+
+    const departureStart = formatTimeLabel(settings?.departure_start_time);
+    const departureEnd = formatTimeLabel(settings?.departure_end_time);
+    const departureWindow =
+      departureStart && departureEnd
+        ? `${departureStart} - ${departureEnd}`
+        : "4:45 PM - 5:00 PM";
+
+
     return res.status(200).json({
       travelDate: today,
       capacity,
       confirmedCount: confirmedCount || 0,
       availableSeats: Math.max(capacity - (confirmedCount || 0), 0),
       waitingCount: waitingCount || 0,
-      departureWindow: "4:45 PM - 5:00 PM",
+      departureWindow: departureWindow,
       bookingStatus: "Open",
     });
   } catch (error) {

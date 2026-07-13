@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTickets from "./pages/AdminTickets";
 import AdminUsers from "./pages/AdminUsers";
+import AdminSettings from "./pages/AdminSettings";
 
 export default function App() {
   return (
@@ -85,6 +86,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <AdminSettings />
             </ProtectedRoute>
           }
         />
