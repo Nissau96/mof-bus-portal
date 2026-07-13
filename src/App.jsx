@@ -8,6 +8,7 @@ import Profile from "./pages/Profile";
 import BookingHistory from "./pages/BookingHistory";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminTickets from "./pages/AdminTickets";
 
 export default function App() {
   return (
@@ -66,6 +67,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tickets"
+          element={
+            <ProtectedRoute>
+              <AdminTickets />
             </ProtectedRoute>
           }
         />
