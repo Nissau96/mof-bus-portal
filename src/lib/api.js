@@ -1,9 +1,10 @@
 import { supabase } from "./supabaseClient";
+import { clearCachedProfile } from "./profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
+
 
 async function handleUnauthorizedSession() {
-  window.localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+  clearCachedProfile();
 
   await supabase.auth.signOut();
 

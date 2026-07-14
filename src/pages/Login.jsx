@@ -8,8 +8,8 @@ import AuthShell from "../components/auth/AuthShell";
 import AuthTabs from "../components/auth/AuthTabs";
 import FormInput from "../components/auth/FormInput";
 import { Link, useNavigate } from "react-router-dom";
+import { setCachedProfile } from "../lib/profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 
 /**
  * Login page.
@@ -28,12 +28,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  function cacheUserProfile(profile) {
-    window.localStorage.setItem(
-      USER_PROFILE_CACHE_KEY,
-      JSON.stringify(profile || {})
-    );
-  }
+  
 
   async function handleStaffLogin() {
     const data = await apiFetch("/api/auth/login-staff", {
@@ -46,7 +41,7 @@ export default function Login() {
 
     await saveSupabaseSession(data.session);
 
-    cacheUserProfile(data.profile);
+    setCachedProfile(data.profile);
 
     navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
   replace: true,
@@ -67,7 +62,7 @@ export default function Login() {
 
     const profileData = await apiFetch("/api/profile/me");
 
-    cacheUserProfile(profileData.profile);
+    setCachedProfile(profileData.profile);
 
    navigate("/dashboard", { replace: true });
   }

@@ -2,26 +2,9 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { supabase } from "../../lib/supabaseClient";
+import { getCachedProfile } from "../../lib/profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 
-function getCachedProfile() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const cachedProfile = window.localStorage.getItem(USER_PROFILE_CACHE_KEY);
-
-    if (!cachedProfile) {
-      return null;
-    }
-
-    return JSON.parse(cachedProfile);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * PublicRoute protects public-only pages.

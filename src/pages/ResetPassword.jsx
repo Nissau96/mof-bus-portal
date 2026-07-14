@@ -11,8 +11,8 @@ import {
 import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
 import { supabase } from "../lib/supabaseClient";
+import { clearCachedProfile } from "../lib/profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 
 /**
  * Reset Password page.
@@ -101,7 +101,7 @@ export default function ResetPassword() {
         throw error;
       }
 
-      window.localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+      clearCachedProfile();
 
       setSuccessMessage(
         "Your password has been updated. You can now log in again."

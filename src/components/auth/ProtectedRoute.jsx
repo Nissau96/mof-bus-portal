@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { supabase } from "../../lib/supabaseClient";
+import { clearCachedProfile } from "../../lib/profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
+
 
 /**
  * ProtectedRoute blocks unauthenticated users from private pages.
@@ -45,7 +46,7 @@ export default function ProtectedRoute({ children }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        window.localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+        clearCachedProfile();
       }
 
       setHasSession(Boolean(session));

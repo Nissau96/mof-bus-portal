@@ -2,26 +2,10 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { apiFetch } from "../../lib/api";
+import { getCachedProfile, setCachedProfile } from "../../lib/profileCache";
 
-const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 
-function getCachedProfile() {
-  if (typeof window === "undefined") {
-    return null;
-  }
 
-  try {
-    const cachedProfile = window.localStorage.getItem(USER_PROFILE_CACHE_KEY);
-
-    if (!cachedProfile) {
-      return null;
-    }
-
-    return JSON.parse(cachedProfile);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * AdminRoute protects admin-only frontend pages.
@@ -43,10 +27,7 @@ export default function AdminRoute({ children }) {
         const data = await apiFetch("/api/profile/me");
         const profile = data.profile || null;
 
-        window.localStorage.setItem(
-          USER_PROFILE_CACHE_KEY,
-          JSON.stringify(profile || {})
-        );
+        setCachedProfile(profile);
 
         if (!isMounted) {
           return;

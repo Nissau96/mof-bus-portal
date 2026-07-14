@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
 import {
   BusFront,
   FileSearch,
@@ -16,8 +17,7 @@ import {
 
 import { useTheme } from "../../context/useTheme";
 import { signOutUser } from "../../lib/auth";
-import { apiFetch } from "../../lib/api";
-import { Link, NavLink } from "react-router-dom";
+import { clearCachedProfile, getCachedProfile } from "../../lib/profileCache";
 
 const userNavItems = [
   {
@@ -65,8 +65,6 @@ const adminNavItems = [
   },
 ];
 
-
-
 function MenuLink({ item, isDark, onClick }) {
   const Icon = item.icon;
 
@@ -106,14 +104,17 @@ function MenuLink({ item, isDark, onClick }) {
  * - System Settings
  * - User Management
  * - Audit Logs
+ *
+ * The profile role is read from localStorage cache so the menu appears
+ * immediately without waiting for /api/profile/me.
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [currentProfile, setCurrentProfile] = useState(null);
 
-  const isAdmin = currentProfile?.role === "admin";
+  const cachedProfile = getCachedProfile();
+  const isAdmin = cachedProfile?.role === "admin";
   const visibleNavItems = isAdmin ? adminNavItems : userNavItems;
 
   const pageClass = isDark
@@ -126,35 +127,12 @@ export default function DashboardShell({ children }) {
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadCurrentProfile() {
-      try {
-        const data = await apiFetch("/api/profile/me");
-
-        if (!isMounted) {
-          return;
-        }
-
-        setCurrentProfile(data.profile || null);
-      } catch {
-        if (isMounted) {
-          setCurrentProfile(null);
-        }
-      }
-    }
-
-    loadCurrentProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   async function handleLogout() {
     try {
+      clearCachedProfile();
+
       await signOutUser();
+
       window.location.href = "/";
     } catch (error) {
       alert(error.message);
