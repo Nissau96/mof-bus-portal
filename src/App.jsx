@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -6,7 +7,12 @@ import BookTicket from "./pages/BookTicket";
 import SupabaseTest from "./pages/SupabaseTest";
 import Profile from "./pages/Profile";
 import BookingHistory from "./pages/BookingHistory";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminRoute from "./components/auth/AdminRoute";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTickets from "./pages/AdminTickets";
 import AdminUsers from "./pages/AdminUsers";
@@ -17,8 +23,14 @@ import AdminBookingHistory from "./pages/AdminBookingHistory";
 import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 import AdminMaintenance from "./pages/AdminMaintenance";
 import AdminManifest from "./pages/AdminManifest";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
+
+function ProtectedAdminPage({ children }) {
+  return (
+    <ProtectedRoute>
+      <AdminRoute>{children}</AdminRoute>
+    </ProtectedRoute>
+  );
+}
 
 export default function App() {
   return (
@@ -26,6 +38,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           path="/dashboard"
@@ -75,93 +89,92 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminDashboard />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
+
         <Route
           path="/admin/tickets"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminTickets />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminUsers />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminSettings />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/audit-logs"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminAuditLogs />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/privileged-users"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminPrivilegedUsers />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/booking-history"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminBookingHistory />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/public-holidays"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminPublicHolidays />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/maintenance"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminMaintenance />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
 
         <Route
           path="/admin/manifest"
           element={
-            <ProtectedRoute>
+            <ProtectedAdminPage>
               <AdminManifest />
-            </ProtectedRoute>
+            </ProtectedAdminPage>
           }
         />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </BrowserRouter>
   );
