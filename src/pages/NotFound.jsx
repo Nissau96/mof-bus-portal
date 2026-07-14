@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowLeft, Home, SearchX } from "lucide-react";
 
 import { useTheme } from "../context/useTheme";
@@ -54,8 +55,8 @@ export default function NotFound() {
         </p>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
-          <a
-            href="/dashboard"
+          <Link
+            to="/dashboard"
             className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition ${
               isDark
                 ? "bg-white text-slate-950 hover:bg-emerald-100"
@@ -64,9 +65,9 @@ export default function NotFound() {
           >
             <Home size={18} />
             Go to Dashboard
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/"
             className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-black transition ${
               isDark
@@ -76,7 +77,7 @@ export default function NotFound() {
           >
             <ArrowLeft size={18} />
             Back to Login
-          </a>
+          </Link>
         </div>
       </section>
     </main>

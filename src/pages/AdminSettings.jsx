@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   Archive,
@@ -134,16 +135,16 @@ function AdminToolCard({ title, description, href, buttonLabel, icon: Icon, isDa
           </div>
         </div>
 
-        <a
-          href={href}
-          className={`inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
-            isDark
-              ? "bg-white text-slate-950 hover:bg-emerald-100"
-              : "bg-mof-primary text-white hover:bg-mof-primary-container"
-          }`}
-        >
-          {buttonLabel}
-        </a>
+       <Link
+  to={href}
+  className={`inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
+    isDark
+      ? "bg-white text-slate-950 hover:bg-emerald-100"
+      : "bg-mof-primary text-white hover:bg-mof-primary-container"
+  }`}
+>
+  {buttonLabel}
+</Link>
       </div>
     </section>
   );
@@ -298,8 +299,8 @@ export default function AdminSettings() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -308,7 +309,7 @@ export default function AdminSettings() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
