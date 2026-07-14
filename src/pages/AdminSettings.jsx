@@ -157,13 +157,7 @@ const adminTools = [
     buttonLabel: "View Today’s Tickets",
     icon: TicketCheck,
   },
-  {
-    title: "User Management",
-    description: "View registered users, roles, divisions, routes, and account status.",
-    href: "/admin/users",
-    buttonLabel: "View Users",
-    icon: UsersRound,
-  },
+  
   {
     title: "Privileged Users",
     description:
@@ -201,14 +195,7 @@ const adminTools = [
     buttonLabel: "Open Maintenance",
     icon: Database,
   },
-  {
-    title: "Audit Logs",
-    description:
-      "Review system activity, booking actions, user changes, and settings updates.",
-    href: "/admin/audit-logs",
-    buttonLabel: "View Audit Logs",
-    icon: FileSearch,
-  },
+  
 ];
 
 /**
