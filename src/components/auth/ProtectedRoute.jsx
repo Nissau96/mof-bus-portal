@@ -1,41 +1,79 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+
 import { supabase } from "../../lib/supabaseClient";
 
+const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
+
 /**
- * ProtectedRoute blocks unauthenticated users from accessing private pages.
+ * ProtectedRoute blocks unauthenticated users from private pages.
  *
- * If the user is not logged in, they are redirected back to the login page.
+ * It checks the Supabase session before rendering dashboard/admin pages.
  */
 export default function ProtectedRoute({ children }) {
-  const [status, setStatus] = useState("checking");
+  const [isChecking, setIsChecking] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (!session) {
-        window.location.href = "/";
-        return;
+        if (!isMounted) {
+          return;
+        }
+
+        setHasSession(Boolean(session));
+      } catch {
+        if (isMounted) {
+          setHasSession(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsChecking(false);
+        }
       }
-
-      setStatus("authenticated");
     }
 
     checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        window.localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+      }
+
+      setHasSession(Boolean(session));
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (status === "checking") {
+  if (isChecking) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-mof-bg px-4">
-        <div className="rounded-2xl border border-mof-border bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-semibold text-mof-text">
-            Checking your session...
+      <div className="flex min-h-screen items-center justify-center bg-[#f7fbf3] px-4 text-center">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-mof-primary">
+            Checking Session
           </p>
+          <h1 className="mt-3 text-2xl font-black text-slate-950">
+            Please wait...
+          </h1>
         </div>
-      </main>
+      </div>
     );
+  }
+
+  if (!hasSession) {
+    return <Navigate to="/" replace />;
   }
 
   return children;
