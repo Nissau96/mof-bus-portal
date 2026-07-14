@@ -23,6 +23,7 @@ import AdminBookingHistory from "./pages/AdminBookingHistory";
 import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 import AdminMaintenance from "./pages/AdminMaintenance";
 import AdminManifest from "./pages/AdminManifest";
+import PublicRoute from "./components/auth/PublicRoute";
 
 
 import NotFound from "./pages/NotFound";
@@ -39,8 +40,23 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -187,6 +203,8 @@ export default function App() {
             </ProtectedAdminPage>
           }
         />
+
+
 
         <Route path="*" element={<NotFound />} />
       </Routes>
