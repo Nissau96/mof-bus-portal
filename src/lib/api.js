@@ -1,14 +1,15 @@
 import { supabase } from "./supabaseClient";
 
-/**
- * apiFetch is a small wrapper around fetch.
- *
- * It helps us:
- * - Send JSON requests
- * - Attach the Supabase access token when available
- * - Read JSON responses
- * - Throw clear errors when the backend returns an error
- */
+const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
+
+async function handleUnauthorizedSession() {
+  window.localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+
+  await supabase.auth.signOut();
+
+  window.location.href = "/";
+}
+
 export async function apiFetch(path, options = {}) {
   const {
     data: { session },
@@ -29,6 +30,12 @@ export async function apiFetch(path, options = {}) {
   });
 
   const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    await handleUnauthorizedSession();
+
+    throw new Error("Your session has expired. Please log in again.");
+  }
 
   if (!response.ok) {
     throw new Error(data.message || "Request failed.");
