@@ -24,6 +24,9 @@ import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 import AdminMaintenance from "./pages/AdminMaintenance";
 import AdminManifest from "./pages/AdminManifest";
 
+
+import NotFound from "./pages/NotFound";
+
 function ProtectedAdminPage({ children }) {
   return (
     <ProtectedRoute>
@@ -175,6 +178,17 @@ export default function App() {
             </ProtectedAdminPage>
           }
         />
+
+        <Route
+          path="/admin/manifest"
+          element={
+            <ProtectedAdminPage>
+              <AdminManifest />
+            </ProtectedAdminPage>
+          }
+        />
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
