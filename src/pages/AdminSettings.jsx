@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import {
+  Archive,
   ArrowLeft,
+  BadgeCheck,
   BusFront,
+  CalendarDays,
+  ClipboardList,
   Clock3,
+  Database,
+  FileSearch,
   Save,
   Settings,
   ShieldCheck,
+  TicketCheck,
+  UsersRound,
 } from "lucide-react";
 
 import DashboardShell from "../components/dashboard/DashboardShell";
@@ -86,11 +94,130 @@ function SettingsField({
   );
 }
 
+function AdminToolCard({ title, description, href, buttonLabel, icon: Icon, isDark }) {
+  return (
+    <section
+      className={`rounded-3xl p-5 sm:p-6 ${
+        isDark
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+              isDark
+                ? "bg-white/10 text-emerald-200"
+                : "bg-emerald-50 text-mof-primary"
+            }`}
+          >
+            <Icon size={22} />
+          </div>
+
+          <div>
+            <h2
+              className={`text-xl font-black ${
+                isDark ? "text-white" : "text-slate-950"
+              }`}
+            >
+              {title}
+            </h2>
+
+            <p
+              className={`mt-1 text-sm leading-6 ${
+                isDark ? "text-slate-400" : "text-slate-600"
+              }`}
+            >
+              {description}
+            </p>
+          </div>
+        </div>
+
+        <a
+          href={href}
+          className={`inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
+            isDark
+              ? "bg-white text-slate-950 hover:bg-emerald-100"
+              : "bg-mof-primary text-white hover:bg-mof-primary-container"
+          }`}
+        >
+          {buttonLabel}
+        </a>
+      </div>
+    </section>
+  );
+}
+
+const adminTools = [
+  {
+    title: "Ticket Management",
+    description: "View today’s confirmed, cancelled, and waiting-list records.",
+    href: "/admin/tickets",
+    buttonLabel: "View Today’s Tickets",
+    icon: TicketCheck,
+  },
+  {
+    title: "User Management",
+    description: "View registered users, roles, divisions, routes, and account status.",
+    href: "/admin/users",
+    buttonLabel: "View Users",
+    icon: UsersRound,
+  },
+  {
+    title: "Privileged Users",
+    description:
+      "Manage staff who should receive priority consideration during daily bus booking.",
+    href: "/admin/privileged-users",
+    buttonLabel: "Manage Privileged Users",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Booking History",
+    description: "View archived ticket records from previous service days.",
+    href: "/admin/booking-history",
+    buttonLabel: "View Booking History",
+    icon: Archive,
+  },
+  {
+    title: "Public Holidays",
+    description: "Manage dates where staff bus booking should automatically close.",
+    href: "/admin/public-holidays",
+    buttonLabel: "Manage Public Holidays",
+    icon: CalendarDays,
+  },
+  {
+    title: "Passenger Manifest",
+    description: "View and export confirmed passengers for the selected travel date.",
+    href: "/admin/manifest",
+    buttonLabel: "Open Manifest",
+    icon: ClipboardList,
+  },
+  {
+    title: "System Maintenance",
+    description:
+      "Archive old daily ticket records and clean up old waiting-list records.",
+    href: "/admin/maintenance",
+    buttonLabel: "Open Maintenance",
+    icon: Database,
+  },
+  {
+    title: "Audit Logs",
+    description:
+      "Review system activity, booking actions, user changes, and settings updates.",
+    href: "/admin/audit-logs",
+    buttonLabel: "View Audit Logs",
+    icon: FileSearch,
+  },
+];
+
 /**
  * Admin Settings page.
  *
  * Allows admin users to update bus capacity, booking open time,
  * and the departure window.
+ *
+ * Also provides an Admin Tools section for secondary admin operations.
  */
 export default function AdminSettings() {
   const { isDark } = useTheme();
@@ -104,14 +231,20 @@ export default function AdminSettings() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadSettings() {
       try {
-        setIsLoading(true);
-
         const data = await apiFetch("/api/admin/settings");
 
+        if (!isMounted) {
+          return;
+        }
+
         setBusCapacity(String(data.settings.bus_capacity || 36));
-        setBookingOpenTime(normalizeTimeForInput(data.settings.booking_open_time));
+        setBookingOpenTime(
+          normalizeTimeForInput(data.settings.booking_open_time)
+        );
         setDepartureStartTime(
           normalizeTimeForInput(data.settings.departure_start_time)
         );
@@ -122,11 +255,17 @@ export default function AdminSettings() {
       } catch (error) {
         alert(error.message);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
     loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleSubmit(event) {
@@ -215,8 +354,8 @@ export default function AdminSettings() {
                 isDark ? "text-white" : "text-slate-700"
               }`}
             >
-              Configure the daily staff bus capacity, booking open time, and
-              departure window.
+              Configure the daily staff bus capacity, booking open time, departure
+              window, and access key administrative tools.
             </p>
           </div>
 
@@ -253,129 +392,181 @@ export default function AdminSettings() {
       )}
 
       {!isLoading && (
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <SettingsField
-            label="Bus Capacity"
-            description="Maximum number of confirmed seats available for the daily staff bus."
-            icon={BusFront}
-            isDark={isDark}
-          >
-            <input
-              type="number"
-              min="1"
-              max="200"
-              value={busCapacity}
-              onChange={(event) => setBusCapacity(event.target.value)}
-              className={inputClass}
-            />
-          </SettingsField>
-
-          <SettingsField
-            label="Booking Open Time"
-            description="The time users are allowed to start booking daily tickets."
-            icon={Clock3}
-            isDark={isDark}
-          >
-            <input
-              type="time"
-              value={bookingOpenTime}
-              onChange={(event) => setBookingOpenTime(event.target.value)}
-              className={inputClass}
-            />
-          </SettingsField>
-
-          <div className="grid gap-4 lg:grid-cols-2">
+        <>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <SettingsField
-              label="Departure Start Time"
-              description="The earliest expected departure time for the bus."
-              icon={Clock3}
+              label="Bus Capacity"
+              description="Maximum number of confirmed seats available for the daily staff bus."
+              icon={BusFront}
               isDark={isDark}
             >
               <input
-                type="time"
-                value={departureStartTime}
-                onChange={(event) =>
-                  setDepartureStartTime(event.target.value)
-                }
+                type="number"
+                min="1"
+                max="200"
+                value={busCapacity}
+                onChange={(event) => setBusCapacity(event.target.value)}
                 className={inputClass}
               />
             </SettingsField>
 
             <SettingsField
-              label="Departure End Time"
-              description="The latest expected departure time for the bus."
+              label="Booking Open Time"
+              description="The time users are allowed to start booking daily tickets."
               icon={Clock3}
               isDark={isDark}
             >
               <input
                 type="time"
-                value={departureEndTime}
-                onChange={(event) => setDepartureEndTime(event.target.value)}
+                value={bookingOpenTime}
+                onChange={(event) => setBookingOpenTime(event.target.value)}
                 className={inputClass}
               />
             </SettingsField>
-          </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <SettingsField
+                label="Departure Start Time"
+                description="The earliest expected departure time for the bus."
+                icon={Clock3}
+                isDark={isDark}
+              >
+                <input
+                  type="time"
+                  value={departureStartTime}
+                  onChange={(event) =>
+                    setDepartureStartTime(event.target.value)
+                  }
+                  className={inputClass}
+                />
+              </SettingsField>
+
+              <SettingsField
+                label="Departure End Time"
+                description="The latest expected departure time for the bus."
+                icon={Clock3}
+                isDark={isDark}
+              >
+                <input
+                  type="time"
+                  value={departureEndTime}
+                  onChange={(event) => setDepartureEndTime(event.target.value)}
+                  className={inputClass}
+                />
+              </SettingsField>
+            </div>
+
+            <section
+              className={`rounded-3xl p-5 sm:p-6 ${
+                isDark
+                  ? "border border-white/10 bg-slate-900"
+                  : "border border-slate-200 bg-white"
+              }`}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2
+                    className={`text-xl font-black ${
+                      isDark ? "text-white" : "text-slate-950"
+                    }`}
+                  >
+                    Save Configuration
+                  </h2>
+                  <p
+                    className={`mt-1 text-sm ${
+                      isDark ? "text-slate-400" : "text-slate-600"
+                    }`}
+                  >
+                    Changes will affect new booking summaries and admin metrics.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isDark
+                      ? "bg-white text-slate-950 hover:bg-emerald-100"
+                      : "bg-mof-primary text-white hover:bg-mof-primary-container"
+                  }`}
+                >
+                  <Save size={18} />
+                  {isSaving ? "Saving..." : "Save Settings"}
+                </button>
+              </div>
+            </section>
+
+            <section
+              className={`rounded-3xl p-5 ${
+                isDark
+                  ? "border border-white/10 bg-slate-900 text-slate-300"
+                  : "border border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <ShieldCheck
+                  size={20}
+                  className={isDark ? "text-emerald-200" : "text-mof-primary"}
+                />
+                <p className="text-sm font-semibold leading-6">
+                  All changes are recorded in the audit log. Keep capacity
+                  updates aligned with the actual number of available seats on
+                  the assigned bus.
+                </p>
+              </div>
+            </section>
+          </form>
 
           <section
-            className={`rounded-3xl p-5 sm:p-6 ${
+            className={`mt-8 rounded-3xl p-5 sm:p-6 ${
               isDark
                 ? "border border-white/10 bg-slate-900"
                 : "border border-slate-200 bg-white"
             }`}
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
+                <p
+                  className={`text-xs font-black uppercase tracking-[0.22em] ${
+                    isDark ? "text-slate-400" : "text-mof-primary"
+                  }`}
+                >
+                  Admin Tools
+                </p>
+
                 <h2
-                  className={`text-xl font-black ${
+                  className={`mt-2 text-xl font-black ${
                     isDark ? "text-white" : "text-slate-950"
                   }`}
                 >
-                  Save Configuration
+                  Operations Shortcuts
                 </h2>
-                <p
-                  className={`mt-1 text-sm ${
-                    isDark ? "text-slate-400" : "text-slate-600"
-                  }`}
-                >
-                  Changes will affect new booking summaries and admin metrics.
-                </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSaving}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                  isDark
-                    ? "bg-white text-slate-950 hover:bg-emerald-100"
-                    : "bg-mof-primary text-white hover:bg-mof-primary-container"
+              <p
+                className={`text-sm font-semibold ${
+                  isDark ? "text-slate-400" : "text-slate-600"
                 }`}
               >
-                <Save size={18} />
-                {isSaving ? "Saving..." : "Save Settings"}
-              </button>
-            </div>
-          </section>
-
-          <section
-            className={`rounded-3xl p-5 ${
-              isDark
-                ? "border border-white/10 bg-slate-900 text-slate-300"
-                : "border border-slate-200 bg-white text-slate-600"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <ShieldCheck
-                size={20}
-                className={isDark ? "text-emerald-200" : "text-mof-primary"}
-              />
-              <p className="text-sm font-semibold leading-6">
-                All changes are recorded in the audit log. Keep capacity
-                updates aligned with the actual number of available seats on the
-                assigned bus.
+                Access secondary admin operations from one place.
               </p>
             </div>
+
+            <div className="mt-5 grid gap-4">
+              {adminTools.map((tool) => (
+                <AdminToolCard
+                  key={tool.href}
+                  title={tool.title}
+                  description={tool.description}
+                  href={tool.href}
+                  buttonLabel={tool.buttonLabel}
+                  icon={tool.icon}
+                  isDark={isDark}
+                />
+              ))}
+            </div>
           </section>
-        </form>
+        </>
       )}
     </DashboardShell>
   );
