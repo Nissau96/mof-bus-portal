@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { getCachedProfile, setCachedProfile } from "../../lib/profileCache";
 
-
+import LoadingScreen from "../common/LoadingScreen";
 
 
 /**
@@ -53,19 +53,14 @@ export default function AdminRoute({ children }) {
   }, []);
 
   if (isChecking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7fbf3] px-4 text-center">
-        <div>
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-mof-primary">
-            Checking Access
-          </p>
-          <h1 className="mt-3 text-2xl font-black text-slate-950">
-            Please wait...
-          </h1>
-        </div>
-      </div>
-    );
-  }
+  return (
+    <LoadingScreen
+      eyebrow="Checking Access"
+      title="Please wait..."
+      description="Confirming your administrator permissions."
+    />
+  );
+}
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;

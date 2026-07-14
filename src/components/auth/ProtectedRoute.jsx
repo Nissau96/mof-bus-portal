@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 
 import { supabase } from "../../lib/supabaseClient";
 import { clearCachedProfile } from "../../lib/profileCache";
-
+import LoadingScreen from "../common/LoadingScreen";
 
 
 /**
@@ -59,19 +59,14 @@ export default function ProtectedRoute({ children }) {
   }, []);
 
   if (isChecking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7fbf3] px-4 text-center">
-        <div>
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-mof-primary">
-            Checking Session
-          </p>
-          <h1 className="mt-3 text-2xl font-black text-slate-950">
-            Please wait...
-          </h1>
-        </div>
-      </div>
-    );
-  }
+  return (
+    <LoadingScreen
+      eyebrow="Checking Session"
+      title="Please wait..."
+      description="Verifying your secure portal session."
+    />
+  );
+}
 
   if (!hasSession) {
     return <Navigate to="/" replace />;
