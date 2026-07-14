@@ -1,14 +1,26 @@
 import { supabase } from "./supabaseClient";
 import { clearCachedProfile } from "./profileCache";
 
-
-
 async function handleUnauthorizedSession() {
   clearCachedProfile();
 
   await supabase.auth.signOut();
 
   window.location.href = "/";
+}
+
+async function readResponseBody(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return response.json().catch(() => ({}));
+  }
+
+  const text = await response.text().catch(() => "");
+
+  return {
+    message: text || response.statusText || "Request failed.",
+  };
 }
 
 export async function apiFetch(path, options = {}) {
@@ -30,7 +42,7 @@ export async function apiFetch(path, options = {}) {
     headers,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data = await readResponseBody(response);
 
   if (response.status === 401) {
     await handleUnauthorizedSession();
@@ -39,7 +51,10 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || "Request failed.");
+    throw new Error(
+      data.message ||
+        `Request failed with status ${response.status}. Please try again.`
+    );
   }
 
   return data;
