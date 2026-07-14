@@ -7,6 +7,7 @@ import { saveSupabaseSession } from "../lib/auth";
 import AuthShell from "../components/auth/AuthShell";
 import AuthTabs from "../components/auth/AuthTabs";
 import FormInput from "../components/auth/FormInput";
+import { Link, useNavigate } from "react-router-dom";
 
 const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 
@@ -26,6 +27,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   function cacheUserProfile(profile) {
     window.localStorage.setItem(
       USER_PROFILE_CACHE_KEY,
@@ -46,7 +48,9 @@ export default function Login() {
 
     cacheUserProfile(data.profile);
 
-    window.location.href = data.profile?.role === "admin" ? "/admin" : "/dashboard";
+    navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
+  replace: true,
+});
   }
 
   async function handleInternLogin() {
@@ -65,7 +69,7 @@ export default function Login() {
 
     cacheUserProfile(profileData.profile);
 
-    window.location.href = "/dashboard";
+   navigate("/dashboard", { replace: true });
   }
 
   async function handleLogin(event) {
@@ -171,12 +175,12 @@ export default function Login() {
             Remember me
           </label>
 
-          <a
+          <Link
             href="/forgot-password"
             className="text-sm font-semibold text-mof-primary hover:underline"
           >
             Forgot Password?
-          </a>
+          </Link>
         </div>
 
         <button
@@ -188,12 +192,12 @@ export default function Login() {
           {!isSubmitting && <ArrowRight size={18} />}
         </button>
 
-        <a
+        <Link
           href="/register"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           Create Account
-        </a>
+        </Link>
       </form>
     </AuthShell>
   );

@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, Send } from "lucide-react";
 import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
 import { supabase } from "../lib/supabaseClient";
+import { Link } from "react-router-dom";
 
 /**
  * Forgot Password page.
@@ -89,13 +90,13 @@ export default function ForgotPassword() {
           {isSubmitting ? "Sending..." : "Send Reset Link"}
         </button>
 
-        <a
+        <Link
           href="/"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           <ArrowLeft size={18} />
           Back to Login
-        </a>
+        </Link>
       </form>
     </AuthShell>
   );

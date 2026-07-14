@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -26,6 +27,7 @@ export default function ResetPassword() {
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
@@ -106,8 +108,8 @@ export default function ResetPassword() {
       );
 
       setTimeout(() => {
-        window.location.href = "/";
-      }, 1500);
+  navigate("/", { replace: true });
+}, 1500);
     } catch (error) {
       alert(error.message || "Could not update password.");
     } finally {
@@ -205,12 +207,12 @@ export default function ResetPassword() {
           {!isSubmitting && <ArrowRight size={18} />}
         </button>
 
-        <a
+        <Link
           href="/"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           Back to Login
-        </a>
+        </Link>
       </form>
     </AuthShell>
   );
