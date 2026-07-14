@@ -17,6 +17,7 @@ import {
 import { useTheme } from "../../context/useTheme";
 import { signOutUser } from "../../lib/auth";
 import { apiFetch } from "../../lib/api";
+import { Link, NavLink } from "react-router-dom";
 
 const userNavItems = [
   {
@@ -64,36 +65,30 @@ const adminNavItems = [
   },
 ];
 
-function getCurrentPath() {
-  if (typeof window === "undefined") {
-    return "";
-  }
 
-  return window.location.pathname;
-}
 
-function NavLink({ item, isDark, onClick }) {
+function MenuLink({ item, isDark, onClick }) {
   const Icon = item.icon;
-  const currentPath = getCurrentPath();
-  const isActive = currentPath === item.href;
 
   return (
-    <a
-      href={item.href}
+    <NavLink
+      to={item.href}
       onClick={onClick}
-      className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
-        isActive
-          ? isDark
-            ? "bg-white text-slate-950"
-            : "bg-mof-primary text-white"
-          : isDark
-            ? "text-slate-300 hover:bg-white/10 hover:text-white"
-            : "text-slate-600 hover:bg-emerald-50 hover:text-mof-primary"
-      }`}
+      className={({ isActive }) =>
+        `flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
+          isActive
+            ? isDark
+              ? "bg-white text-slate-950"
+              : "bg-mof-primary text-white"
+            : isDark
+              ? "text-slate-300 hover:bg-white/10 hover:text-white"
+              : "text-slate-600 hover:bg-emerald-50 hover:text-mof-primary"
+        }`
+      }
     >
       <Icon size={17} />
       <span>{item.label}</span>
-    </a>
+    </NavLink>
   );
 }
 
@@ -176,7 +171,7 @@ export default function DashboardShell({ children }) {
         className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a href="/dashboard" className="flex items-center gap-3">
+          <Link to="/dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950">
               <BusFront size={22} />
             </div>
@@ -187,7 +182,7 @@ export default function DashboardShell({ children }) {
                 Staff transport workspace
               </p>
             </div>
-          </a>
+          </Link>
 
           <div className="flex items-center gap-2">
             <button
@@ -240,7 +235,7 @@ export default function DashboardShell({ children }) {
           <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
             <nav className="flex items-center gap-2 overflow-x-auto pb-1">
               {visibleNavItems.map((item) => (
-                <NavLink key={item.href} item={item} isDark={isDark} />
+                <MenuLink key={item.href} item={item} isDark={isDark} />
               ))}
             </nav>
           </div>
@@ -256,7 +251,7 @@ export default function DashboardShell({ children }) {
           >
             <div className="space-y-1">
               {visibleNavItems.map((item) => (
-                <NavLink
+                <MenuLink
                   key={item.href}
                   item={item}
                   isDark={isDark}
