@@ -17,6 +17,8 @@ import AdminBookingHistory from "./pages/AdminBookingHistory";
 import AdminPublicHolidays from "./pages/AdminPublicHolidays";
 import AdminMaintenance from "./pages/AdminMaintenance";
 import AdminManifest from "./pages/AdminManifest";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
   return (
@@ -158,6 +160,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </BrowserRouter>
   );
