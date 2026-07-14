@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Eye, LockKeyhole, UserRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 
 import { supabase } from "../lib/supabaseClient";
 import { apiFetch } from "../lib/api";
@@ -24,8 +24,8 @@ export default function Login() {
   const [staffId, setStaffId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   function cacheUserProfile(profile) {
     window.localStorage.setItem(
       USER_PROFILE_CACHE_KEY,
@@ -140,7 +140,7 @@ export default function Login() {
           <FormInput
             id="password"
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Enter your password"
             value={password}
             onChange={setPassword}
@@ -153,10 +153,12 @@ export default function Login() {
 
           <button
             type="button"
-            aria-label="Show password"
+            onClick={() => setShowPassword((currentValue) => !currentValue)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide password" : "Show password"}
             className="absolute bottom-3 right-3 text-mof-text-muted hover:text-mof-primary"
           >
-            <Eye size={18} />
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
 

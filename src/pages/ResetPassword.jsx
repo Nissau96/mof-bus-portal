@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle2, Eye, LockKeyhole } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+} from "lucide-react";
 
 import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
@@ -15,6 +21,8 @@ const USER_PROFILE_CACHE_KEY = "mof_bus_profile";
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -123,7 +131,7 @@ export default function ResetPassword() {
           <FormInput
             id="password"
             label="New Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="Enter new password"
             value={password}
             onChange={setPassword}
@@ -136,10 +144,12 @@ export default function ResetPassword() {
 
           <button
             type="button"
-            aria-label="Show password"
+            onClick={() => setShowPassword((currentValue) => !currentValue)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide password" : "Show password"}
             className="absolute bottom-3 right-3 text-mof-text-muted hover:text-mof-primary"
           >
-            <Eye size={18} />
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
 
@@ -147,7 +157,7 @@ export default function ResetPassword() {
           <FormInput
             id="confirmPassword"
             label="Confirm New Password"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             placeholder="Confirm new password"
             value={confirmPassword}
             onChange={setConfirmPassword}
@@ -157,6 +167,26 @@ export default function ResetPassword() {
             className="pointer-events-none absolute bottom-3 left-3 hidden text-mof-text-muted"
             size={18}
           />
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowConfirmPassword((currentValue) => !currentValue)
+            }
+            aria-label={
+              showConfirmPassword
+                ? "Hide confirm password"
+                : "Show confirm password"
+            }
+            title={
+              showConfirmPassword
+                ? "Hide confirm password"
+                : "Show confirm password"
+            }
+            className="absolute bottom-3 right-3 text-mof-text-muted hover:text-mof-primary"
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
 
         {successMessage && (
