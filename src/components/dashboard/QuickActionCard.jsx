@@ -1,8 +1,9 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 /**
  * QuickActionCard displays a clickable dashboard action.
- * 
+ *
  * It supports both dark and light modes and remains fully responsive.
  */
 export default function QuickActionCard({
@@ -13,8 +14,8 @@ export default function QuickActionCard({
   isDark,
 }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={href}
       className={`group block rounded-2xl p-5 transition ${
         isDark
           ? "border border-white/10 bg-slate-800/70 hover:border-white/20 hover:bg-slate-800"
@@ -57,6 +58,6 @@ export default function QuickActionCard({
       >
         {description}
       </p>
-    </a>
+    </Link>
   );
 }
