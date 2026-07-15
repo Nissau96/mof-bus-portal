@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   Archive,
@@ -10,6 +11,7 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 
 function StatCard({ label, value, description, icon: Icon, isDark }) {
@@ -69,12 +71,13 @@ function StatCard({ label, value, description, icon: Icon, isDark }) {
  */
 export default function AdminMaintenance() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [archivePreview, setArchivePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isArchiving, setIsArchiving] = useState(false);
 
-  async function loadArchivePreview() {
+  const loadArchivePreview = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -82,15 +85,19 @@ export default function AdminMaintenance() {
 
       setArchivePreview(data);
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Could not load maintenance summary",
+        message: error.message || "Failed to load archive preview.",
+      });
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [showToast]);
 
   useEffect(() => {
     loadArchivePreview();
-  }, []);
+  }, [loadArchivePreview]);
 
   async function handleArchiveOldTickets() {
     const confirmed = window.confirm(
@@ -109,10 +116,21 @@ export default function AdminMaintenance() {
         body: JSON.stringify({}),
       });
 
-      alert(data.message);
+      showToast({
+        type: "success",
+        title: "Archive completed",
+        message:
+          data.message ||
+          "Old ticket records have been archived successfully.",
+      });
+
       await loadArchivePreview();
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Archive failed",
+        message: error.message || "Failed to archive old ticket records.",
+      });
     } finally {
       setIsArchiving(false);
     }
@@ -125,8 +143,8 @@ export default function AdminMaintenance() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -135,7 +153,7 @@ export default function AdminMaintenance() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -180,10 +198,12 @@ export default function AdminMaintenance() {
           >
             <div className="flex items-center gap-3">
               <CalendarDays size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Today
                 </p>
+
                 <p className="mt-1 text-lg font-black">{today}</p>
               </div>
             </div>
@@ -283,6 +303,7 @@ export default function AdminMaintenance() {
                 size={20}
                 className={isDark ? "text-emerald-200" : "text-mof-primary"}
               />
+
               <p
                 className={`text-sm font-semibold leading-6 ${
                   isDark ? "text-slate-300" : "text-slate-600"
