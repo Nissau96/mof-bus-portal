@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -19,6 +20,7 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 
 const ITEMS_PER_PAGE = 10;
@@ -324,6 +326,7 @@ function PaginationControls({
  */
 export default function AdminPrivilegedUsers() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [privilegedUsers, setPrivilegedUsers] = useState([]);
   const [staffId, setStaffId] = useState("");
@@ -333,7 +336,7 @@ export default function AdminPrivilegedUsers() {
   const [removingId, setRemovingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  async function loadPrivilegedUsers() {
+  const loadPrivilegedUsers = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -342,15 +345,19 @@ export default function AdminPrivilegedUsers() {
       setPrivilegedUsers(data.privilegedUsers || []);
       setCurrentPage(1);
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Could not load privileged users",
+        message: error.message || "Failed to load privileged users.",
+      });
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [showToast]);
 
   useEffect(() => {
     loadPrivilegedUsers();
-  }, []);
+  }, [loadPrivilegedUsers]);
 
   async function handleAddPrivilegedUser(event) {
     event.preventDefault();
@@ -358,7 +365,11 @@ export default function AdminPrivilegedUsers() {
     const cleanedStaffId = staffId.trim();
 
     if (!cleanedStaffId) {
-      alert("Enter a Staff ID.");
+      showToast({
+        type: "warning",
+        title: "Staff ID required",
+        message: "Enter a Staff ID before adding a privileged user.",
+      });
       return;
     }
 
@@ -379,9 +390,17 @@ export default function AdminPrivilegedUsers() {
       setStaffId("");
       setCurrentPage(1);
 
-      alert(data.message);
+      showToast({
+        type: "success",
+        title: "Privileged user added",
+        message: data.message || "The staff member has been added successfully.",
+      });
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Could not add privileged user",
+        message: error.message || "Failed to add the privileged user.",
+      });
     } finally {
       setIsAdding(false);
     }
@@ -407,13 +426,24 @@ export default function AdminPrivilegedUsers() {
       });
 
       setPrivilegedUsers((currentRecords) =>
-        currentRecords.filter((currentRecord) => currentRecord.id !== data.removedId)
+        currentRecords.filter(
+          (currentRecord) => currentRecord.id !== data.removedId
+        )
       );
       setCurrentPage(1);
 
-      alert(data.message);
+      showToast({
+        type: "success",
+        title: "Privileged user removed",
+        message:
+          data.message || "The staff member has been removed successfully.",
+      });
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Could not remove privileged user",
+        message: error.message || "Failed to remove the privileged user.",
+      });
     } finally {
       setRemovingId(null);
     }
@@ -452,17 +482,20 @@ export default function AdminPrivilegedUsers() {
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return filteredUsers.slice(startIndex, endIndex);
-  }, [filteredUsers, currentPage]);
+  }, [filteredUsers, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -480,8 +513,8 @@ export default function AdminPrivilegedUsers() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -490,7 +523,7 @@ export default function AdminPrivilegedUsers() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -535,10 +568,12 @@ export default function AdminPrivilegedUsers() {
           >
             <div className="flex items-center gap-3">
               <ShieldCheck size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Privileged Users
                 </p>
+
                 <p className="mt-1 text-lg font-black">
                   {privilegedUsers.length}
                 </p>
@@ -657,7 +692,7 @@ export default function AdminPrivilegedUsers() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
