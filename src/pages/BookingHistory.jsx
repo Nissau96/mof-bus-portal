@@ -13,6 +13,7 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+import { useToast } from "../context/useToast";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -346,7 +347,7 @@ function PaginationControls({
  */
 export default function BookingHistory() {
   const { isDark } = useTheme();
-
+  const { showToast } = useToast();
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -361,14 +362,18 @@ export default function BookingHistory() {
         setHistory(data.history || []);
         setCurrentPage(1);
       } catch (error) {
-        alert(error.message);
+        showToast({
+    type: "error",
+    title: "Could not load booking history",
+    message: error.message || "Failed to load your booking history.",
+  });
       } finally {
         setIsLoading(false);
       }
     }
 
     loadHistory();
-  }, []);
+  }, [showToast]);
 
   const totalItems = history.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
