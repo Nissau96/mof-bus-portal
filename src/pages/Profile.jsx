@@ -15,6 +15,8 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+import { useToast } from "../context/useToast";
+
 
 function getRoleLabel(role) {
   if (role === "intern_nsp") {
@@ -77,7 +79,8 @@ function ProfileInfoCard({ label, value, icon: Icon, isDark }) {
  */
 export default function Profile() {
   const { isDark } = useTheme();
-
+  const { showToast } = useToast();
+  
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -90,14 +93,18 @@ export default function Profile() {
 
         setProfile(data.profile);
       } catch (error) {
-        alert(error.message);
+        showToast({
+    type: "error",
+    title: "Could not load profile",
+    message: error.message || "Failed to load your profile details.",
+  });
       } finally {
         setIsLoading(false);
       }
     }
 
     loadProfile();
-  }, []);
+  }, [showToast]);
 
   const roleLabel = getRoleLabel(profile?.role);
 
