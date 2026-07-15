@@ -15,6 +15,8 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+import { useToast } from "../context/useToast";
+import { Link } from "react-router-dom";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -342,7 +344,7 @@ function PaginationControls({
  */
 export default function AdminAuditLogs() {
   const { isDark } = useTheme();
-
+  const { showToast } = useToast();
   const [logs, setLogs] = useState([]);
   const [actions, setActions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -361,14 +363,18 @@ export default function AdminAuditLogs() {
         setActions(data.actions || []);
         setCurrentPage(1);
       } catch (error) {
-        alert(error.message);
+         showToast({
+    type: "error",
+    title: "Could not load audit logs",
+    message: error.message || "Failed to load system activity records.",
+  });
       } finally {
         setIsLoading(false);
       }
     }
 
     loadAuditLogs();
-  }, []);
+  }, [showToast]);
 
   function handleSearchChange(event) {
     setSearchTerm(event.target.value);
@@ -438,7 +444,7 @@ export default function AdminAuditLogs() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
+        <Link
           href="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
@@ -448,7 +454,7 @@ export default function AdminAuditLogs() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
