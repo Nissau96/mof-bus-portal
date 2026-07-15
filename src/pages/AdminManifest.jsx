@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BusFront,
@@ -17,6 +18,7 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 import { BUS_ROUTE_OPTIONS } from "../constants/busRoutesList";
 
@@ -307,6 +309,7 @@ function PaginationControls({
  */
 export default function AdminManifest() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [travelDate, setTravelDate] = useState(getTodayISO());
   const [selectedBusRoute, setSelectedBusRoute] = useState("all");
@@ -315,80 +318,45 @@ export default function AdminManifest() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  async function loadManifest(
-    dateValue = travelDate,
-    busRouteValue = selectedBusRoute,
-    showLoader = true
-  ) {
-    try {
-      if (showLoader) {
-        setIsLoading(true);
-      }
-
-      const params = new URLSearchParams({
-        date: dateValue,
-        busRoute: busRouteValue,
-      });
-
-      const data = await apiFetch(`/api/admin/manifest?${params.toString()}`);
-
-      setManifest(data.manifest || []);
-      setCurrentPage(1);
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadInitialManifest() {
+  const loadManifest = useCallback(
+    async (dateValue, busRouteValue, showLoader = true) => {
       try {
+        if (showLoader) {
+          setIsLoading(true);
+        }
+
         const params = new URLSearchParams({
-          date: travelDate,
-          busRoute: selectedBusRoute,
+          date: dateValue,
+          busRoute: busRouteValue,
         });
 
         const data = await apiFetch(`/api/admin/manifest?${params.toString()}`);
 
-        if (!isMounted) {
-          return;
-        }
-
         setManifest(data.manifest || []);
         setCurrentPage(1);
       } catch (error) {
-        if (isMounted) {
-          alert(error.message);
-        }
+        showToast({
+          type: "error",
+          title: "Could not load manifest",
+          message: error.message || "Failed to load passenger manifest.",
+        });
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
-    }
+    },
+    [showToast]
+  );
 
-    loadInitialManifest();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    loadManifest(travelDate, selectedBusRoute);
+  }, [loadManifest, travelDate, selectedBusRoute]);
 
   function handleDateChange(event) {
-    const nextDate = event.target.value;
-
-    setTravelDate(nextDate);
-    loadManifest(nextDate, selectedBusRoute);
+    setTravelDate(event.target.value);
   }
 
   function handleBusRouteChange(event) {
-    const nextBusRoute = event.target.value;
-
-    setSelectedBusRoute(nextBusRoute);
-    loadManifest(travelDate, nextBusRoute);
+    setSelectedBusRoute(event.target.value);
   }
 
   function handleSearchChange(event) {
@@ -404,7 +372,11 @@ export default function AdminManifest() {
       const accessToken = sessionResult.data.session?.access_token;
 
       if (!accessToken) {
-        alert("You must be logged in to download the manifest.");
+        showToast({
+          type: "warning",
+          title: "Login required",
+          message: "You must be logged in to download the manifest.",
+        });
         return;
       }
 
@@ -441,8 +413,18 @@ export default function AdminManifest() {
       link.remove();
 
       window.URL.revokeObjectURL(url);
+
+      showToast({
+        type: "success",
+        title: "Manifest downloaded",
+        message: "The passenger manifest CSV has been downloaded.",
+      });
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Download failed",
+        message: error.message || "Could not download passenger manifest.",
+      });
     }
   }
 
@@ -475,17 +457,20 @@ export default function AdminManifest() {
   const totalItems = filteredManifest.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedManifest = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return filteredManifest.slice(startIndex, endIndex);
-  }, [filteredManifest, currentPage]);
+  }, [filteredManifest, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -503,8 +488,8 @@ export default function AdminManifest() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -513,7 +498,7 @@ export default function AdminManifest() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -558,10 +543,12 @@ export default function AdminManifest() {
           >
             <div className="flex items-center gap-3">
               <CalendarDays size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Manifest Date
                 </p>
+
                 <p className="mt-1 text-lg font-black">
                   {formatDisplayDate(travelDate)}
                 </p>
@@ -678,7 +665,7 @@ export default function AdminManifest() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
