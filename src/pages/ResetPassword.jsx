@@ -12,7 +12,7 @@ import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
 import { supabase } from "../lib/supabaseClient";
 import { clearCachedProfile } from "../lib/profileCache";
-
+import { useToast } from "../context/useToast";
 
 /**
  * Reset Password page.
@@ -28,6 +28,7 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
@@ -56,7 +57,11 @@ export default function ResetPassword() {
           setIsReady(true);
         }
       } catch (error) {
-        alert(error.message || "Could not prepare password reset session.");
+        showToast({
+          type: "error",
+          title: "Reset session failed",
+          message: error.message || "Could not prepare password reset session.",
+        });
 
         if (isMounted) {
           setIsReady(false);
@@ -69,23 +74,35 @@ export default function ResetPassword() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [showToast]);
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (!password) {
-      alert("Please enter your new password.");
+      showToast({
+        type: "warning",
+        title: "Password required",
+        message: "Please enter your new password.",
+      });
       return;
     }
 
     if (password.length < 8) {
-      alert("Password must be at least 8 characters long.");
+      showToast({
+        type: "warning",
+        title: "Password too short",
+        message: "Password must be at least 8 characters long.",
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      showToast({
+        type: "warning",
+        title: "Passwords do not match",
+        message: "Please ensure your passwords match.",
+      });
       return;
     }
 
@@ -107,11 +124,21 @@ export default function ResetPassword() {
         "Your password has been updated. You can now log in again."
       );
 
+      showToast({
+        type: "success",
+        title: "Password updated",
+        message: "You can now log in with your new password.",
+      });
+
       setTimeout(() => {
-  navigate("/", { replace: true });
-}, 1500);
+        navigate("/", { replace: true });
+      }, 1500);
     } catch (error) {
-      alert(error.message || "Could not update password.");
+      showToast({
+        type: "error",
+        title: "Could not update password",
+        message: error.message || "Could not update password.",
+      });
     } finally {
       setIsSubmitting(false);
     }

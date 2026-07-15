@@ -5,6 +5,8 @@ import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
 import { supabase } from "../lib/supabaseClient";
 import { Link } from "react-router-dom";
+import { useToast } from "../context/useToast";
+
 
 /**
  * Forgot Password page.
@@ -15,6 +17,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const { showToast } = useToast();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -22,7 +25,11 @@ export default function ForgotPassword() {
     const cleanedEmail = email.trim();
 
     if (!cleanedEmail) {
-      alert("Please enter your email address.");
+      showToast({
+  type: "warning",
+  title: "Email required",
+  message: "Please enter your email address.",
+});
       return;
     }
 
@@ -46,8 +53,18 @@ export default function ForgotPassword() {
       setSuccessMessage(
         "Password reset instructions have been sent to your email address."
       );
+
+      showToast({
+  type: "success",
+  title: "Reset link sent",
+  message: "Please check your email for password reset instructions.",
+});
     } catch (error) {
-      alert(error.message || "Could not send password reset email.");
+      showToast({
+  type: "error",
+  title: "Could not send reset link",
+  message: error.message || "Could not send password reset email.",
+});
     } finally {
       setIsSubmitting(false);
     }
