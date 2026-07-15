@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-import { supabase } from "../../lib/supabaseClient";
-import { clearCachedProfile } from "../../lib/profileCache";
 import LoadingScreen from "../common/LoadingScreen";
-
+import { clearCachedProfile } from "../../lib/profileCache";
+import { supabase } from "../../lib/supabaseClient";
 
 /**
  * ProtectedRoute blocks unauthenticated users from private pages.
@@ -31,6 +30,7 @@ export default function ProtectedRoute({ children }) {
         setHasSession(Boolean(session));
       } catch {
         if (isMounted) {
+          clearCachedProfile();
           setHasSession(false);
         }
       } finally {
@@ -45,11 +45,16 @@ export default function ProtectedRoute({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) {
+        return;
+      }
+
       if (!session) {
         clearCachedProfile();
       }
 
       setHasSession(Boolean(session));
+      setIsChecking(false);
     });
 
     return () => {
@@ -59,14 +64,14 @@ export default function ProtectedRoute({ children }) {
   }, []);
 
   if (isChecking) {
-  return (
-    <LoadingScreen
-      eyebrow="Checking Session"
-      title="Please wait..."
-      description="Verifying your secure portal session."
-    />
-  );
-}
+    return (
+      <LoadingScreen
+        eyebrow="Checking Session"
+        title="Please wait..."
+        description="Verifying your secure portal session."
+      />
+    );
+  }
 
   if (!hasSession) {
     return <Navigate to="/" replace />;
