@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -14,9 +15,8 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
-import { apiFetch } from "../lib/api";
 import { useToast } from "../context/useToast";
-import { Link } from "react-router-dom";
+import { apiFetch } from "../lib/api";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -345,6 +345,7 @@ function PaginationControls({
 export default function AdminAuditLogs() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
+
   const [logs, setLogs] = useState([]);
   const [actions, setActions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -352,29 +353,29 @@ export default function AdminAuditLogs() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    async function loadAuditLogs() {
-      try {
-        setIsLoading(true);
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        const data = await apiFetch("/api/admin/audit-logs");
+      const data = await apiFetch("/api/admin/audit-logs");
 
-        setLogs(data.logs || []);
-        setActions(data.actions || []);
-        setCurrentPage(1);
-      } catch (error) {
-         showToast({
-    type: "error",
-    title: "Could not load audit logs",
-    message: error.message || "Failed to load system activity records.",
-  });
-      } finally {
-        setIsLoading(false);
-      }
+      setLogs(data.logs || []);
+      setActions(data.actions || []);
+      setCurrentPage(1);
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not load audit logs",
+        message: error.message || "Failed to load system activity records.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    loadAuditLogs();
   }, [showToast]);
+
+  useEffect(() => {
+    loadAuditLogs();
+  }, [loadAuditLogs]);
 
   function handleSearchChange(event) {
     setSearchTerm(event.target.value);
@@ -416,17 +417,20 @@ export default function AdminAuditLogs() {
   const totalItems = filteredLogs.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedLogs = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return filteredLogs.slice(startIndex, endIndex);
-  }, [filteredLogs, currentPage]);
+  }, [filteredLogs, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -445,7 +449,7 @@ export default function AdminAuditLogs() {
     <DashboardShell>
       <div className="mb-6">
         <Link
-          href="/admin"
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -499,10 +503,12 @@ export default function AdminAuditLogs() {
           >
             <div className="flex items-center gap-3">
               <CalendarDays size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Loaded Logs
                 </p>
+
                 <p className="mt-1 text-lg font-black">{logs.length}</p>
               </div>
             </div>
@@ -588,7 +594,7 @@ export default function AdminAuditLogs() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
