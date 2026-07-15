@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-import { supabase } from "../../lib/supabaseClient";
-import { getCachedProfile } from "../../lib/profileCache";
 import LoadingScreen from "../common/LoadingScreen";
-
+import { getCachedProfile } from "../../lib/profileCache";
+import { supabase } from "../../lib/supabaseClient";
 
 /**
  * PublicRoute protects public-only pages.
@@ -14,8 +13,6 @@ import LoadingScreen from "../common/LoadingScreen";
  * Ordinary users go to /dashboard.
  */
 export default function PublicRoute({ children }) {
-  const cachedProfile = getCachedProfile();
-
   const [isChecking, setIsChecking] = useState(true);
   const [redirectPath, setRedirectPath] = useState("");
 
@@ -37,7 +34,9 @@ export default function PublicRoute({ children }) {
           return;
         }
 
+        const cachedProfile = getCachedProfile();
         const nextPath = cachedProfile?.role === "admin" ? "/admin" : "/dashboard";
+
         setRedirectPath(nextPath);
       } catch {
         if (isMounted) {
@@ -55,17 +54,17 @@ export default function PublicRoute({ children }) {
     return () => {
       isMounted = false;
     };
-  }, [cachedProfile?.role]);
+  }, []);
 
   if (isChecking) {
-  return (
-    <LoadingScreen
-      eyebrow="Checking Session"
-      title="Please wait..."
-      description="Checking whether you are already signed in."
-    />
-  );
-}
+    return (
+      <LoadingScreen
+        eyebrow="Checking Session"
+        title="Please wait..."
+        description="Checking whether you are already signed in."
+      />
+    );
+  }
 
   if (redirectPath) {
     return <Navigate to={redirectPath} replace />;
