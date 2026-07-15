@@ -1,5 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 import {
   Archive,
   ArrowLeft,
@@ -9,18 +9,16 @@ import {
   ClipboardList,
   Clock3,
   Database,
-  FileSearch,
   Save,
   Settings,
   ShieldCheck,
   TicketCheck,
-  UsersRound,
 } from "lucide-react";
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
-import { apiFetch } from "../lib/api";
 import { useToast } from "../context/useToast";
+import { apiFetch } from "../lib/api";
 
 function normalizeTimeForInput(timeValue) {
   if (!timeValue) {
@@ -46,41 +44,39 @@ function formatUpdatedAt(dateValue) {
   }).format(date);
 }
 
-function SettingsField({
-  label,
-  description,
-  icon: Icon,
-  children,
-  isDark,
-}) {
+function SettingsField({ label, description, icon: Icon, children, isDark }) {
   return (
     <div
-      className={`rounded-3xl p-5 ${isDark
+      className={`rounded-3xl p-5 ${
+        isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
-        }`}
+      }`}
     >
       <div className="flex items-start gap-4">
         <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+            isDark
               ? "bg-white/10 text-emerald-200"
               : "bg-emerald-50 text-mof-primary"
-            }`}
+          }`}
         >
           <Icon size={22} />
         </div>
 
         <div className="w-full">
           <h2
-            className={`text-base font-black ${isDark ? "text-white" : "text-slate-950"
-              }`}
+            className={`text-base font-black ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
           >
             {label}
           </h2>
 
           <p
-            className={`mt-1 text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-              }`}
+            className={`mt-1 text-sm leading-6 ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}
           >
             {description}
           </p>
@@ -92,36 +88,47 @@ function SettingsField({
   );
 }
 
-function AdminToolCard({ title, description, href, buttonLabel, icon: Icon, isDark }) {
+function AdminToolCard({
+  title,
+  description,
+  href,
+  buttonLabel,
+  icon: Icon,
+  isDark,
+}) {
   return (
     <section
-      className={`rounded-3xl p-5 sm:p-6 ${isDark
+      className={`rounded-3xl p-5 sm:p-6 ${
+        isDark
           ? "border border-white/10 bg-slate-900"
           : "border border-slate-200 bg-white"
-        }`}
+      }`}
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+              isDark
                 ? "bg-white/10 text-emerald-200"
                 : "bg-emerald-50 text-mof-primary"
-              }`}
+            }`}
           >
             <Icon size={22} />
           </div>
 
           <div>
             <h2
-              className={`text-xl font-black ${isDark ? "text-white" : "text-slate-950"
-                }`}
+              className={`text-xl font-black ${
+                isDark ? "text-white" : "text-slate-950"
+              }`}
             >
               {title}
             </h2>
 
             <p
-              className={`mt-1 text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
-                }`}
+              className={`mt-1 text-sm leading-6 ${
+                isDark ? "text-slate-400" : "text-slate-600"
+              }`}
             >
               {description}
             </p>
@@ -130,10 +137,11 @@ function AdminToolCard({ title, description, href, buttonLabel, icon: Icon, isDa
 
         <Link
           to={href}
-          className={`inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl px-5 text-sm font-black transition ${isDark
+          className={`inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
+            isDark
               ? "bg-white text-slate-950 hover:bg-emerald-100"
               : "bg-mof-primary text-white hover:bg-mof-primary-container"
-            }`}
+          }`}
         >
           {buttonLabel}
         </Link>
@@ -150,7 +158,6 @@ const adminTools = [
     buttonLabel: "View Today’s Tickets",
     icon: TicketCheck,
   },
-
   {
     title: "Privileged Users",
     description:
@@ -188,7 +195,6 @@ const adminTools = [
     buttonLabel: "Open Maintenance",
     icon: Database,
   },
-
 ];
 
 /**
@@ -202,6 +208,7 @@ const adminTools = [
 export default function AdminSettings() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
+
   const [busCapacity, setBusCapacity] = useState("36");
   const [bookingOpenTime, setBookingOpenTime] = useState("16:20");
   const [departureStartTime, setDepartureStartTime] = useState("16:45");
@@ -210,47 +217,35 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const applySettings = useCallback((settings) => {
+    setBusCapacity(String(settings.bus_capacity || 36));
+    setBookingOpenTime(normalizeTimeForInput(settings.booking_open_time));
+    setDepartureStartTime(normalizeTimeForInput(settings.departure_start_time));
+    setDepartureEndTime(normalizeTimeForInput(settings.departure_end_time));
+    setUpdatedAt(settings.updated_at || "");
+  }, []);
 
-    async function loadSettings() {
-      try {
-        const data = await apiFetch("/api/admin/settings");
+  const loadSettings = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        if (!isMounted) {
-          return;
-        }
+      const data = await apiFetch("/api/admin/settings");
 
-        setBusCapacity(String(data.settings.bus_capacity || 36));
-        setBookingOpenTime(
-          normalizeTimeForInput(data.settings.booking_open_time)
-        );
-        setDepartureStartTime(
-          normalizeTimeForInput(data.settings.departure_start_time)
-        );
-        setDepartureEndTime(
-          normalizeTimeForInput(data.settings.departure_end_time)
-        );
-        setUpdatedAt(data.settings.updated_at || "");
-      } catch (error) {
-        showToast({
-          type: "error",
-          title: "Could not load settings",
-          message: error.message,
-        });
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      applySettings(data.settings || {});
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not load settings",
+        message: error.message || "Failed to load system settings.",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  }, [applySettings, showToast]);
 
+  useEffect(() => {
     loadSettings();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [showToast]);
+  }, [loadSettings]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -268,15 +263,7 @@ export default function AdminSettings() {
         }),
       });
 
-      setBusCapacity(String(data.settings.bus_capacity || 36));
-      setBookingOpenTime(normalizeTimeForInput(data.settings.booking_open_time));
-      setDepartureStartTime(
-        normalizeTimeForInput(data.settings.departure_start_time)
-      );
-      setDepartureEndTime(
-        normalizeTimeForInput(data.settings.departure_end_time)
-      );
-      setUpdatedAt(data.settings.updated_at || "");
+      applySettings(data.settings || {});
 
       showToast({
         type: "success",
@@ -287,27 +274,29 @@ export default function AdminSettings() {
       showToast({
         type: "error",
         title: "Could not save settings",
-        message: error.message,
+        message: error.message || "Failed to save system settings.",
       });
     } finally {
       setIsSaving(false);
     }
   }
 
-  const inputClass = `min-h-12 w-full rounded-xl border px-4 text-sm font-bold outline-none transition ${isDark
+  const inputClass = `min-h-12 w-full rounded-xl border px-4 text-sm font-bold outline-none transition ${
+    isDark
       ? "border-white/10 bg-white/5 text-white focus:border-emerald-300"
       : "border-slate-200 bg-slate-50 text-slate-950 focus:border-mof-primary"
-    }`;
+  }`;
 
   return (
     <DashboardShell>
       <div className="mb-6">
         <Link
           to="/admin"
-          className={`inline-flex items-center gap-2 text-sm font-bold ${isDark
+          className={`inline-flex items-center gap-2 text-sm font-bold ${
+            isDark
               ? "text-slate-300 hover:text-white"
               : "text-slate-600 hover:text-mof-primary"
-            }`}
+          }`}
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
@@ -315,30 +304,34 @@ export default function AdminSettings() {
       </div>
 
       <section
-        className={`relative overflow-hidden rounded-3xl p-6 shadow-sm sm:p-8 ${isDark
+        className={`relative overflow-hidden rounded-3xl p-6 shadow-sm sm:p-8 ${
+          isDark
             ? "border border-white/10 bg-[#3e5048]"
             : "border border-slate-200 bg-white"
-          }`}
+        }`}
       >
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p
-              className={`text-xs font-black uppercase tracking-[0.22em] ${isDark ? "text-white/80" : "text-mof-primary"
-                }`}
+              className={`text-xs font-black uppercase tracking-[0.22em] ${
+                isDark ? "text-white/80" : "text-mof-primary"
+              }`}
             >
               Admin Operations
             </p>
 
             <h1
-              className={`mt-4 text-3xl font-black tracking-tight sm:text-4xl ${isDark ? "text-white" : "text-slate-950"
-                }`}
+              className={`mt-4 text-3xl font-black tracking-tight sm:text-4xl ${
+                isDark ? "text-white" : "text-slate-950"
+              }`}
             >
               System Settings
             </h1>
 
             <p
-              className={`mt-3 max-w-2xl text-sm font-semibold leading-6 ${isDark ? "text-white" : "text-slate-700"
-                }`}
+              className={`mt-3 max-w-2xl text-sm font-semibold leading-6 ${
+                isDark ? "text-white" : "text-slate-700"
+              }`}
             >
               Configure the daily staff bus capacity, booking open time, departure
               window, and access key administrative tools.
@@ -346,15 +339,18 @@ export default function AdminSettings() {
           </div>
 
           <div
-            className={`rounded-2xl px-5 py-4 ${isDark ? "bg-white/10 text-white" : "bg-emerald-50 text-mof-primary"
-              }`}
+            className={`rounded-2xl px-5 py-4 ${
+              isDark ? "bg-white/10 text-white" : "bg-emerald-50 text-mof-primary"
+            }`}
           >
             <div className="flex items-center gap-3">
               <Settings size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Last Updated
                 </p>
+
                 <p className="mt-1 text-sm font-black">
                   {formatUpdatedAt(updatedAt)}
                 </p>
@@ -366,10 +362,11 @@ export default function AdminSettings() {
 
       {isLoading && (
         <section
-          className={`mt-6 rounded-3xl p-6 ${isDark
+          className={`mt-6 rounded-3xl p-6 ${
+            isDark
               ? "border border-white/10 bg-slate-900 text-slate-300"
               : "border border-slate-200 bg-white text-slate-600"
-            }`}
+          }`}
         >
           <p className="text-sm font-bold">Loading settings...</p>
         </section>
@@ -441,22 +438,26 @@ export default function AdminSettings() {
             </div>
 
             <section
-              className={`rounded-3xl p-5 sm:p-6 ${isDark
+              className={`rounded-3xl p-5 sm:p-6 ${
+                isDark
                   ? "border border-white/10 bg-slate-900"
                   : "border border-slate-200 bg-white"
-                }`}
+              }`}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2
-                    className={`text-xl font-black ${isDark ? "text-white" : "text-slate-950"
-                      }`}
+                    className={`text-xl font-black ${
+                      isDark ? "text-white" : "text-slate-950"
+                    }`}
                   >
                     Save Configuration
                   </h2>
+
                   <p
-                    className={`mt-1 text-sm ${isDark ? "text-slate-400" : "text-slate-600"
-                      }`}
+                    className={`mt-1 text-sm ${
+                      isDark ? "text-slate-400" : "text-slate-600"
+                    }`}
                   >
                     Changes will affect new booking summaries and admin metrics.
                   </p>
@@ -465,10 +466,11 @@ export default function AdminSettings() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isDark
                       ? "bg-white text-slate-950 hover:bg-emerald-100"
                       : "bg-mof-primary text-white hover:bg-mof-primary-container"
-                    }`}
+                  }`}
                 >
                   <Save size={18} />
                   {isSaving ? "Saving..." : "Save Settings"}
@@ -477,16 +479,18 @@ export default function AdminSettings() {
             </section>
 
             <section
-              className={`rounded-3xl p-5 ${isDark
+              className={`rounded-3xl p-5 ${
+                isDark
                   ? "border border-white/10 bg-slate-900 text-slate-300"
                   : "border border-slate-200 bg-white text-slate-600"
-                }`}
+              }`}
             >
               <div className="flex items-start gap-3">
                 <ShieldCheck
                   size={20}
                   className={isDark ? "text-emerald-200" : "text-mof-primary"}
                 />
+
                 <p className="text-sm font-semibold leading-6">
                   All changes are recorded in the audit log. Keep capacity
                   updates aligned with the actual number of available seats on
@@ -497,31 +501,35 @@ export default function AdminSettings() {
           </form>
 
           <section
-            className={`mt-8 rounded-3xl p-5 sm:p-6 ${isDark
+            className={`mt-8 rounded-3xl p-5 sm:p-6 ${
+              isDark
                 ? "border border-white/10 bg-slate-900"
                 : "border border-slate-200 bg-white"
-              }`}
+            }`}
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p
-                  className={`text-xs font-black uppercase tracking-[0.22em] ${isDark ? "text-slate-400" : "text-mof-primary"
-                    }`}
+                  className={`text-xs font-black uppercase tracking-[0.22em] ${
+                    isDark ? "text-slate-400" : "text-mof-primary"
+                  }`}
                 >
                   Admin Tools
                 </p>
 
                 <h2
-                  className={`mt-2 text-xl font-black ${isDark ? "text-white" : "text-slate-950"
-                    }`}
+                  className={`mt-2 text-xl font-black ${
+                    isDark ? "text-white" : "text-slate-950"
+                  }`}
                 >
                   Operations Shortcuts
                 </h2>
               </div>
 
               <p
-                className={`text-sm font-semibold ${isDark ? "text-slate-400" : "text-slate-600"
-                  }`}
+                className={`text-sm font-semibold ${
+                  isDark ? "text-slate-400" : "text-slate-600"
+                }`}
               >
                 Access secondary admin operations from one place.
               </p>
