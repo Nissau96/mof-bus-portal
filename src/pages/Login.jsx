@@ -1,16 +1,15 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 
-import { supabase } from "../lib/supabaseClient";
-import { apiFetch } from "../lib/api";
-import { saveSupabaseSession } from "../lib/auth";
 import AuthShell from "../components/auth/AuthShell";
 import AuthTabs from "../components/auth/AuthTabs";
 import FormInput from "../components/auth/FormInput";
-import { Link, useNavigate } from "react-router-dom";
-import { setCachedProfile } from "../lib/profileCache";
 import { useToast } from "../context/useToast";
-
+import { apiFetch } from "../lib/api";
+import { saveSupabaseSession } from "../lib/auth";
+import { setCachedProfile } from "../lib/profileCache";
+import { supabase } from "../lib/supabaseClient";
 
 /**
  * Login page.
@@ -22,21 +21,21 @@ import { useToast } from "../context/useToast";
  * so DashboardShell can render the correct navigation instantly.
  */
 export default function Login() {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
   const [activeTab, setActiveTab] = useState("staff");
   const [staffId, setStaffId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-
 
   async function handleStaffLogin() {
     const data = await apiFetch("/api/auth/login-staff", {
       method: "POST",
       body: JSON.stringify({
-        staffId,
+        staffId: staffId.trim(),
         password,
       }),
     });
@@ -52,7 +51,7 @@ export default function Login() {
 
   async function handleInternLogin() {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim(),
       password,
     });
 
@@ -189,7 +188,7 @@ export default function Login() {
           </label>
 
           <Link
-            href="/forgot-password"
+            to="/forgot-password"
             className="text-sm font-semibold text-mof-primary hover:underline"
           >
             Forgot Password?
@@ -206,7 +205,7 @@ export default function Login() {
         </button>
 
         <Link
-          href="/register"
+          to="/register"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           Create Account
