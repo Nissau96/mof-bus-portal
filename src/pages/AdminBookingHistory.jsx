@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BusFront,
@@ -17,6 +18,7 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 
 const ITEMS_PER_PAGE = 10;
@@ -354,6 +356,7 @@ function PaginationControls({
  */
 export default function AdminBookingHistory() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -362,24 +365,28 @@ export default function AdminBookingHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    async function loadBookingHistory() {
-      try {
-        setIsLoading(true);
+  const loadBookingHistory = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        const data = await apiFetch("/api/admin/booking-history");
+      const data = await apiFetch("/api/admin/booking-history");
 
-        setRecords(data.records || []);
-        setCurrentPage(1);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        setIsLoading(false);
-      }
+      setRecords(data.records || []);
+      setCurrentPage(1);
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not load booking history",
+        message: error.message || "Failed to load archived booking records.",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  }, [showToast]);
 
+  useEffect(() => {
     loadBookingHistory();
-  }, []);
+  }, [loadBookingHistory]);
 
   function handleSearchChange(event) {
     setSearchTerm(event.target.value);
@@ -437,17 +444,20 @@ export default function AdminBookingHistory() {
   const totalItems = filteredRecords.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedRecords = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return filteredRecords.slice(startIndex, endIndex);
-  }, [filteredRecords, currentPage]);
+  }, [filteredRecords, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -465,8 +475,8 @@ export default function AdminBookingHistory() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -475,7 +485,7 @@ export default function AdminBookingHistory() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -519,10 +529,12 @@ export default function AdminBookingHistory() {
           >
             <div className="flex items-center gap-3">
               <TicketCheck size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Archived Records
                 </p>
+
                 <p className="mt-1 text-lg font-black">{records.length}</p>
               </div>
             </div>
@@ -619,7 +631,7 @@ export default function AdminBookingHistory() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
