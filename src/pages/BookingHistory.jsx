@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
@@ -12,8 +13,8 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
-import { apiFetch } from "../lib/api";
 import { useToast } from "../context/useToast";
+import { apiFetch } from "../lib/api";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -140,6 +141,7 @@ function HistoryCard({ item, isDark }) {
               size={18}
               className={isDark ? "text-emerald-200" : "text-mof-primary"}
             />
+
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider ${
@@ -148,6 +150,7 @@ function HistoryCard({ item, isDark }) {
               >
                 Travel Date
               </p>
+
               <p
                 className={`mt-1 font-black ${
                   isDark ? "text-white" : "text-slate-950"
@@ -169,6 +172,7 @@ function HistoryCard({ item, isDark }) {
               size={18}
               className={isDark ? "text-emerald-200" : "text-mof-primary"}
             />
+
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider ${
@@ -177,6 +181,7 @@ function HistoryCard({ item, isDark }) {
               >
                 Bus Route
               </p>
+
               <p
                 className={`mt-1 font-black ${
                   isDark ? "text-white" : "text-slate-950"
@@ -198,6 +203,7 @@ function HistoryCard({ item, isDark }) {
               size={18}
               className={isDark ? "text-emerald-200" : "text-mof-primary"}
             />
+
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider ${
@@ -206,6 +212,7 @@ function HistoryCard({ item, isDark }) {
               >
                 Drop-off
               </p>
+
               <p
                 className={`mt-1 font-black ${
                   isDark ? "text-white" : "text-slate-950"
@@ -227,6 +234,7 @@ function HistoryCard({ item, isDark }) {
               size={18}
               className={isDark ? "text-emerald-200" : "text-mof-primary"}
             />
+
             <div>
               <p
                 className={`text-xs font-bold uppercase tracking-wider ${
@@ -235,6 +243,7 @@ function HistoryCard({ item, isDark }) {
               >
                 Created
               </p>
+
               <p
                 className={`mt-1 font-black ${
                   isDark ? "text-white" : "text-slate-950"
@@ -348,6 +357,7 @@ function PaginationControls({
 export default function BookingHistory() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
+
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -363,10 +373,10 @@ export default function BookingHistory() {
         setCurrentPage(1);
       } catch (error) {
         showToast({
-    type: "error",
-    title: "Could not load booking history",
-    message: error.message || "Failed to load your booking history.",
-  });
+          type: "error",
+          title: "Could not load booking history",
+          message: error.message || "Failed to load your booking history.",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -378,17 +388,20 @@ export default function BookingHistory() {
   const totalItems = history.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedHistory = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return history.slice(startIndex, endIndex);
-  }, [history, currentPage]);
+  }, [history, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -406,8 +419,8 @@ export default function BookingHistory() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/dashboard"
+        <Link
+          to="/dashboard"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -416,7 +429,7 @@ export default function BookingHistory() {
         >
           <ArrowLeft size={17} />
           Back to dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -519,8 +532,8 @@ export default function BookingHistory() {
             or join the waiting list.
           </p>
 
-          <a
-            href="/book"
+          <Link
+            to="/book"
             className={`mt-6 inline-flex min-h-12 items-center justify-center rounded-xl px-5 text-sm font-black transition ${
               isDark
                 ? "bg-white text-slate-950 hover:bg-emerald-100"
@@ -528,7 +541,7 @@ export default function BookingHistory() {
             }`}
           >
             Book ticket now
-          </a>
+          </Link>
         </section>
       )}
 
@@ -541,7 +554,7 @@ export default function BookingHistory() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
