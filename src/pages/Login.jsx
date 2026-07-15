@@ -9,6 +9,7 @@ import AuthTabs from "../components/auth/AuthTabs";
 import FormInput from "../components/auth/FormInput";
 import { Link, useNavigate } from "react-router-dom";
 import { setCachedProfile } from "../lib/profileCache";
+import { useToast } from "../context/useToast";
 
 
 /**
@@ -28,7 +29,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  
+  const { showToast } = useToast();
+
 
   async function handleStaffLogin() {
     const data = await apiFetch("/api/auth/login-staff", {
@@ -44,8 +46,8 @@ export default function Login() {
     setCachedProfile(data.profile);
 
     navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
-  replace: true,
-});
+      replace: true,
+    });
   }
 
   async function handleInternLogin() {
@@ -64,24 +66,36 @@ export default function Login() {
 
     setCachedProfile(profileData.profile);
 
-   navigate("/dashboard", { replace: true });
+    navigate("/dashboard", { replace: true });
   }
 
   async function handleLogin(event) {
     event.preventDefault();
 
     if (activeTab === "staff" && !staffId.trim()) {
-      alert("Please enter your Staff ID.");
+      showToast({
+        type: "warning",
+        title: "Staff ID required",
+        message: "Please enter your Staff ID.",
+      });
       return;
     }
 
     if (activeTab === "intern" && !email.trim()) {
-      alert("Please enter your email address.");
+      showToast({
+        type: "warning",
+        title: "Email required",
+        message: "Please enter your email address.",
+      });
       return;
     }
 
     if (!password) {
-      alert("Please enter your password.");
+      showToast({
+        type: "warning",
+        title: "Password required",
+        message: "Please enter your password.",
+      });
       return;
     }
 
@@ -95,7 +109,11 @@ export default function Login() {
 
       await handleInternLogin();
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Login failed",
+        message: error.message || "Could not complete login.",
+      });
     } finally {
       setIsSubmitting(false);
     }
