@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -14,11 +15,14 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
-import { apiFetch } from "../lib/api";
 import { useToast } from "../context/useToast";
-
+import { apiFetch } from "../lib/api";
 
 function getRoleLabel(role) {
+  if (role === "admin") {
+    return "Admin";
+  }
+
   if (role === "intern_nsp") {
     return "Intern/NSP";
   }
@@ -80,7 +84,7 @@ function ProfileInfoCard({ label, value, icon: Icon, isDark }) {
 export default function Profile() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
-  
+
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -94,10 +98,10 @@ export default function Profile() {
         setProfile(data.profile);
       } catch (error) {
         showToast({
-    type: "error",
-    title: "Could not load profile",
-    message: error.message || "Failed to load your profile details.",
-  });
+          type: "error",
+          title: "Could not load profile",
+          message: error.message || "Failed to load your profile details.",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -111,8 +115,8 @@ export default function Profile() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/dashboard"
+        <Link
+          to="/dashboard"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -121,7 +125,7 @@ export default function Profile() {
         >
           <ArrowLeft size={17} />
           Back to dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -190,153 +194,125 @@ export default function Profile() {
       )}
 
       {!isLoading && profile && (
-        <>
-          <section
-            className={`mt-6 rounded-3xl p-5 sm:p-6 ${
-              isDark
-                ? "border border-white/10 bg-slate-900"
-                : "border border-slate-200 bg-white"
-            }`}
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p
-                  className={`text-xs font-black uppercase tracking-[0.22em] ${
-                    isDark ? "text-emerald-200" : "text-mof-primary"
-                  }`}
-                >
-                  Profile Summary
-                </p>
+        <section
+          className={`mt-6 rounded-3xl p-5 sm:p-6 ${
+            isDark
+              ? "border border-white/10 bg-slate-900"
+              : "border border-slate-200 bg-white"
+          }`}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p
+                className={`text-xs font-black uppercase tracking-[0.22em] ${
+                  isDark ? "text-emerald-200" : "text-mof-primary"
+                }`}
+              >
+                Profile Summary
+              </p>
 
-                <h2
-                  className={`mt-2 text-2xl font-black ${
-                    isDark ? "text-white" : "text-slate-950"
-                  }`}
-                >
-                  {profile.full_name}
-                </h2>
+              <h2
+                className={`mt-2 text-2xl font-black ${
+                  isDark ? "text-white" : "text-slate-950"
+                }`}
+              >
+                {profile.full_name}
+              </h2>
 
-                <p
-                  className={`mt-1 text-sm font-semibold ${
-                    isDark ? "text-slate-400" : "text-slate-600"
-                  }`}
-                >
-                  {profile.email}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
-                    isDark
-                      ? "bg-emerald-500/10 text-emerald-200"
-                      : "bg-emerald-50 text-mof-primary"
-                  }`}
-                >
-                  <BadgeCheck size={15} />
-                  {roleLabel}
-                </span>
-
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
-                    isDark
-                      ? "bg-white/10 text-white"
-                      : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  <ShieldCheck size={15} />
-                  {profile.is_disabled ? "Disabled" : "Active"}
-                </span>
-              </div>
+              <p
+                className={`mt-1 text-sm font-semibold ${
+                  isDark ? "text-slate-400" : "text-slate-600"
+                }`}
+              >
+                {profile.email}
+              </p>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <ProfileInfoCard
-                label="Full Name"
-                value={profile.full_name}
-                icon={UserRound}
-                isDark={isDark}
-              />
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                  isDark
+                    ? "bg-emerald-500/10 text-emerald-200"
+                    : "bg-emerald-50 text-mof-primary"
+                }`}
+              >
+                <BadgeCheck size={15} />
+                {roleLabel}
+              </span>
 
-              <ProfileInfoCard
-                label="Role"
-                value={roleLabel}
-                icon={BadgeCheck}
-                isDark={isDark}
-              />
-
-              {profile.role === "staff" && (
-                <ProfileInfoCard
-                  label="Staff ID"
-                  value={profile.staff_id}
-                  icon={IdCard}
-                  isDark={isDark}
-                />
-              )}
-
-              <ProfileInfoCard
-                label="Email"
-                value={profile.email}
-                icon={Mail}
-                isDark={isDark}
-              />
-
-              <ProfileInfoCard
-                label="Phone"
-                value={profile.phone}
-                icon={Phone}
-                isDark={isDark}
-              />
-
-              <ProfileInfoCard
-                label="Division"
-                value={profile.division}
-                icon={Building2}
-                isDark={isDark}
-              />
-
-              <ProfileInfoCard
-                label="Assigned Bus Route"
-                value={profile.bus_route}
-                icon={BusFront}
-                isDark={isDark}
-              />
-
-              <ProfileInfoCard
-                label="Preferred Drop-off"
-                value={profile.dropoff_location}
-                icon={MapPinned}
-                isDark={isDark}
-              />
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                  isDark
+                    ? "bg-white/10 text-white"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                <ShieldCheck size={15} />
+                {profile.is_disabled ? "Disabled" : "Active"}
+              </span>
             </div>
-          </section>
+          </div>
 
-          {/* <section
-            className={`mt-6 rounded-3xl p-5 sm:p-6 ${
-              isDark
-                ? "border border-white/10 bg-slate-900"
-                : "border border-slate-200 bg-white"
-            }`}
-          >
-            <h2
-              className={`text-xl font-black ${
-                isDark ? "text-white" : "text-slate-950"
-              }`}
-            >
-              Profile Updates
-            </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ProfileInfoCard
+              label="Full Name"
+              value={profile.full_name}
+              icon={UserRound}
+              isDark={isDark}
+            />
 
-            <p
-              className={`mt-2 max-w-3xl text-sm leading-6 ${
-                isDark ? "text-slate-400" : "text-slate-600"
-              }`}
-            >
-              For now, profile changes should be handled by the transport or
-              system administrator to prevent users from changing their assigned
-              division, route, or identity details without approval.
-            </p>
-          </section> */}
-        </>
+            <ProfileInfoCard
+              label="Role"
+              value={roleLabel}
+              icon={BadgeCheck}
+              isDark={isDark}
+            />
+
+            {profile.role === "staff" && (
+              <ProfileInfoCard
+                label="Staff ID"
+                value={profile.staff_id}
+                icon={IdCard}
+                isDark={isDark}
+              />
+            )}
+
+            <ProfileInfoCard
+              label="Email"
+              value={profile.email}
+              icon={Mail}
+              isDark={isDark}
+            />
+
+            <ProfileInfoCard
+              label="Phone"
+              value={profile.phone}
+              icon={Phone}
+              isDark={isDark}
+            />
+
+            <ProfileInfoCard
+              label="Division"
+              value={profile.division}
+              icon={Building2}
+              isDark={isDark}
+            />
+
+            <ProfileInfoCard
+              label="Assigned Bus Route"
+              value={profile.bus_route}
+              icon={BusFront}
+              isDark={isDark}
+            />
+
+            <ProfileInfoCard
+              label="Preferred Drop-off"
+              value={profile.dropoff_location}
+              icon={MapPinned}
+              isDark={isDark}
+            />
+          </div>
+        </section>
       )}
     </DashboardShell>
   );
