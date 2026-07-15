@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   BusFront,
   FileSearch,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "../../context/useTheme";
+import { useToast } from "../../context/useToast";
 import { signOutUser } from "../../lib/auth";
 import { clearCachedProfile, getCachedProfile } from "../../lib/profileCache";
 
@@ -110,8 +111,11 @@ function MenuLink({ item, isDark, onClick }) {
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const cachedProfile = getCachedProfile();
   const isAdmin = cachedProfile?.role === "admin";
@@ -129,13 +133,22 @@ export default function DashboardShell({ children }) {
 
   async function handleLogout() {
     try {
+      setIsLoggingOut(true);
+      setIsMenuOpen(false);
+
       clearCachedProfile();
 
       await signOutUser();
 
-      window.location.href = "/";
+      navigate("/", { replace: true });
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Logout failed",
+        message: error.message || "Could not log out. Please try again.",
+      });
+    } finally {
+      setIsLoggingOut(false);
     }
   }
 
@@ -193,14 +206,15 @@ export default function DashboardShell({ children }) {
             <button
               type="button"
               onClick={handleLogout}
-              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold lg:inline-flex ${
+              disabled={isLoggingOut}
+              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex ${
                 isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
               }`}
             >
               <LogOut size={17} />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
         </div>
@@ -241,14 +255,15 @@ export default function DashboardShell({ children }) {
             <button
               type="button"
               onClick={handleLogout}
-              className={`mt-5 flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-bold ${
+              disabled={isLoggingOut}
+              className={`mt-5 flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 isDark
                   ? "border-white/10 text-slate-300 hover:bg-white/10"
                   : "border-slate-200 text-slate-700 hover:bg-white"
               }`}
             >
               <LogOut size={17} />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
         )}
