@@ -1,6 +1,6 @@
 /**
  * MetricCard displays a single dashboard statistic.
- * 
+ *
  * The card supports both dark and light dashboard themes.
  */
 export default function MetricCard({
@@ -8,7 +8,7 @@ export default function MetricCard({
   value,
   description,
   icon: Icon,
-  tone,
+  tone = "green",
   isDark,
 }) {
   const toneClasses = {
@@ -17,6 +17,8 @@ export default function MetricCard({
     amber: "bg-amber-500 text-white",
     red: "bg-rose-500 text-white",
   };
+
+  const selectedToneClass = toneClasses[tone] || toneClasses.green;
 
   return (
     <article
@@ -28,11 +30,9 @@ export default function MetricCard({
     >
       <div className="flex items-start gap-4">
         <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-            toneClasses[tone] || toneClasses.green
-          }`}
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${selectedToneClass}`}
         >
-          <Icon size={22} />
+          {Icon ? <Icon size={22} aria-hidden="true" /> : null}
         </div>
 
         <div className="min-w-0">
