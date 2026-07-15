@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,6 +16,7 @@ import RouteSelect from "../components/auth/RouteSelect";
 import { ROUTE_SUMMARY } from "../constants/bookingData";
 import { BUS_ROUTES } from "../constants/busRoutes";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 
 /**
@@ -66,6 +68,7 @@ function getWeekdayName(dateValue) {
  */
 export default function BookTicket() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [profile, setProfile] = useState(null);
@@ -80,54 +83,72 @@ export default function BookTicket() {
   /**
    * Refreshes the booking summary, profile, and user's current ticket status.
    *
-   * This function is called after successful booking submission.
+   * This function is called after successful booking submission or cancellation.
    */
-  async function loadBookingData() {
-    try {
-      setIsLoading(true);
+  const loadBookingData = useCallback(
+    async ({ showLoader = true } = {}) => {
+      try {
+        if (showLoader) {
+          setIsLoading(true);
+        }
 
-      const [profileData, summaryData, ticketData] = await Promise.all([
-        apiFetch("/api/profile/me"),
-        apiFetch("/api/booking/summary"),
-        apiFetch("/api/booking/my-ticket"),
-      ]);
+        const [profileData, summaryData, ticketData] = await Promise.all([
+          apiFetch("/api/profile/me"),
+          apiFetch("/api/booking/summary"),
+          apiFetch("/api/booking/my-ticket"),
+        ]);
 
-      setProfile(profileData.profile);
-      setSummary(summaryData);
-      setCurrentStatus(ticketData);
+        setProfile(profileData.profile);
+        setSummary(summaryData);
+        setCurrentStatus(ticketData);
 
-      if (profileData.profile?.dropoff_location) {
-        setDropoffLocation(profileData.profile.dropoff_location);
+        if (profileData.profile?.dropoff_location) {
+          setDropoffLocation(profileData.profile.dropoff_location);
+        }
+      } catch (error) {
+        showToast({
+          type: "error",
+          title: "Could not load booking details",
+          message: error.message || "Failed to load booking information.",
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    },
+    [showToast]
+  );
 
   /**
    * Handles ticket booking submission.
-   *
-   * The await expression must remain inside this async function.
    */
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (isBookingClosed) {
-      alert(summary?.bookingStatusReason || "Booking is currently closed.");
+      showToast({
+        type: "warning",
+        title: "Booking closed",
+        message: summary?.bookingStatusReason || "Booking is currently closed.",
+      });
       return;
     }
 
     if (!dropoffLocation) {
-      alert("Please select your preferred drop-off location.");
+      showToast({
+        type: "warning",
+        title: "Drop-off location required",
+        message: "Please select your drop-off location before submitting.",
+      });
       return;
     }
 
     if (!profile?.bus_route) {
-      alert(
-        "Your profile does not have a bus route assigned. Please contact the transport administrator."
-      );
+      showToast({
+        type: "error",
+        title: "Bus route not assigned",
+        message:
+          "Your profile does not have a bus route assigned. Please contact the transport administrator.",
+      });
       return;
     }
 
@@ -142,10 +163,24 @@ export default function BookTicket() {
         }),
       });
 
+      const bookingStatus = data.status || data.booking?.status;
+
       setBookingResult(data);
+
+      showToast({
+        type: bookingStatus === "waiting" ? "warning" : "success",
+        title:
+          bookingStatus === "waiting" ? "Added to waiting list" : "Ticket booked",
+        message: data.message || "Your booking request has been processed.",
+      });
+
       await loadBookingData();
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Booking failed",
+        message: error.message || "Could not submit your booking.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -168,23 +203,28 @@ export default function BookTicket() {
         body: JSON.stringify({}),
       });
 
-      alert(data.message);
+      showToast({
+        type: "success",
+        title: "Ticket cancelled",
+        message: data.message || "Your ticket has been cancelled successfully.",
+      });
+
       setBookingResult(null);
       await loadBookingData();
     } catch (error) {
-      alert(error.message);
+      showToast({
+        type: "error",
+        title: "Cancellation failed",
+        message: error.message || "Could not cancel your ticket.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   useEffect(() => {
-    async function loadInitialBookingData() {
-      await loadBookingData();
-    }
-
-    loadInitialBookingData();
-  }, []);
+    loadBookingData({ showLoader: false });
+  }, [loadBookingData]);
 
   const travelDate = summary?.travelDate;
 
@@ -217,8 +257,8 @@ export default function BookTicket() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/dashboard"
+        <Link
+          to="/dashboard"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -227,7 +267,7 @@ export default function BookTicket() {
         >
           <ArrowLeft size={17} />
           Back to dashboard
-        </a>
+        </Link>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -362,12 +402,15 @@ export default function BookTicket() {
               <p className="text-sm font-bold uppercase tracking-wide">
                 Confirmed Ticket
               </p>
+
               <p className="mt-3 text-5xl font-black">
                 {String(confirmedTicket.ticket_number).padStart(2, "0")}
               </p>
+
               <p className="mt-3 text-sm leading-6">
                 Drop-off: <strong>{confirmedTicket.dropoff_location}</strong>
               </p>
+
               <button
                 type="button"
                 disabled={isSubmitting}
@@ -394,9 +437,11 @@ export default function BookTicket() {
               <p className="text-sm font-bold uppercase tracking-wide">
                 Waiting List
               </p>
+
               <p className="mt-3 text-5xl font-black">
                 #{waitingRecord.waiting_position}
               </p>
+
               <p className="mt-3 text-sm leading-6">
                 You will be promoted if a seat becomes available.
               </p>
@@ -421,6 +466,7 @@ export default function BookTicket() {
                   }`}
                 >
                   <CheckCircle2 className="mt-0.5 shrink-0" size={20} />
+
                   <div>
                     <p className="font-bold">{bookingResult.message}</p>
                     <p className="mt-1 text-sm leading-6">
@@ -447,14 +493,14 @@ export default function BookTicket() {
                     isDark ? "text-slate-400" : "text-slate-600"
                   }`}
                 >
-                  Each user can only hold one ticket per travel day. When the
-                  bus is full, users will be added to the waiting list.
+                  Each user can only hold one ticket per travel day. When the bus
+                  is full, users will be added to the waiting list.
                 </p>
               </div>
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <a
-                  href="/dashboard"
+                <Link
+                  to="/dashboard"
                   className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-5 text-sm font-bold ${
                     isDark
                       ? "border-white/10 text-slate-300 hover:bg-white/10"
@@ -462,7 +508,7 @@ export default function BookTicket() {
                   }`}
                 >
                   Cancel
-                </a>
+                </Link>
 
                 <button
                   type="submit"
@@ -564,6 +610,7 @@ export default function BookTicket() {
                 size={19}
                 className={isDark ? "text-emerald-200" : "text-mof-primary"}
               />
+
               <p
                 className={`text-sm font-bold ${
                   isDark ? "text-white" : "text-slate-950"
