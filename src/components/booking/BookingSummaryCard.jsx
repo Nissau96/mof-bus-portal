@@ -29,7 +29,7 @@ export default function BookingSummaryCard({
             : "bg-emerald-50 text-mof-primary"
         }`}
       >
-        <Icon size={21} />
+        {Icon ? <Icon size={21} aria-hidden="true" /> : null}
       </div>
 
       <p
