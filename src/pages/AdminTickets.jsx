@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   CalendarDays,
@@ -16,6 +17,7 @@ import {
 
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
+import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 
 const ITEMS_PER_PAGE = 10;
@@ -103,7 +105,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
-            {value}
+            {value || "-"}
           </p>
         </div>
       </div>
@@ -317,6 +319,7 @@ function PaginationControls({
  */
 export default function AdminTickets() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [tickets, setTickets] = useState([]);
   const [waitingList, setWaitingList] = useState([]);
@@ -326,26 +329,30 @@ export default function AdminTickets() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    async function loadTickets() {
-      try {
-        setIsLoading(true);
+  const loadTickets = useCallback(async () => {
+    try {
+      setIsLoading(true);
 
-        const data = await apiFetch("/api/admin/tickets");
+      const data = await apiFetch("/api/admin/tickets");
 
-        setTickets(data.tickets || []);
-        setWaitingList(data.waitingList || []);
-        setTravelDate(data.travelDate || "");
-        setCurrentPage(1);
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        setIsLoading(false);
-      }
+      setTickets(data.tickets || []);
+      setWaitingList(data.waitingList || []);
+      setTravelDate(data.travelDate || "");
+      setCurrentPage(1);
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not load tickets",
+        message: error.message || "Failed to load today’s ticket records.",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  }, [showToast]);
 
+  useEffect(() => {
     loadTickets();
-  }, []);
+  }, [loadTickets]);
 
   function handleTabChange(tabName) {
     setActiveTab(tabName);
@@ -387,17 +394,20 @@ export default function AdminTickets() {
   const totalItems = filteredRecords.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+
   const paginatedRecords = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     return filteredRecords.slice(startIndex, endIndex);
-  }, [filteredRecords, currentPage]);
+  }, [filteredRecords, safeCurrentPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1;
 
-  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+  const endItem = Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems);
 
   function handlePageChange(pageNumber) {
     if (pageNumber < 1 || pageNumber > totalPages) {
@@ -415,8 +425,8 @@ export default function AdminTickets() {
   return (
     <DashboardShell>
       <div className="mb-6">
-        <a
-          href="/admin"
+        <Link
+          to="/admin"
           className={`inline-flex items-center gap-2 text-sm font-bold ${
             isDark
               ? "text-slate-300 hover:text-white"
@@ -425,7 +435,7 @@ export default function AdminTickets() {
         >
           <ArrowLeft size={17} />
           Back to admin dashboard
-        </a>
+        </Link>
       </div>
 
       <section
@@ -583,7 +593,7 @@ export default function AdminTickets() {
           </section>
 
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={safeCurrentPage}
             totalPages={totalPages}
             totalItems={totalItems}
             startItem={startItem}
