@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-import { apiFetch } from "../../lib/api";
-import { getCachedProfile, setCachedProfile } from "../../lib/profileCache";
-
 import LoadingScreen from "../common/LoadingScreen";
-
+import { apiFetch } from "../../lib/api";
+import {
+  clearCachedProfile,
+  getCachedProfile,
+  setCachedProfile,
+} from "../../lib/profileCache";
 
 /**
  * AdminRoute protects admin-only frontend pages.
@@ -15,9 +17,10 @@ import LoadingScreen from "../common/LoadingScreen";
  */
 export default function AdminRoute({ children }) {
   const cachedProfile = getCachedProfile();
+  const cachedIsAdmin = cachedProfile?.role === "admin";
 
-  const [isChecking, setIsChecking] = useState(!cachedProfile);
-  const [isAdmin, setIsAdmin] = useState(cachedProfile?.role === "admin");
+  const [isChecking, setIsChecking] = useState(!cachedIsAdmin);
+  const [isAdmin, setIsAdmin] = useState(cachedIsAdmin);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,6 +38,8 @@ export default function AdminRoute({ children }) {
 
         setIsAdmin(profile?.role === "admin");
       } catch {
+        clearCachedProfile();
+
         if (isMounted) {
           setIsAdmin(false);
         }
@@ -53,14 +58,14 @@ export default function AdminRoute({ children }) {
   }, []);
 
   if (isChecking) {
-  return (
-    <LoadingScreen
-      eyebrow="Checking Access"
-      title="Please wait..."
-      description="Confirming your administrator permissions."
-    />
-  );
-}
+    return (
+      <LoadingScreen
+        eyebrow="Checking Access"
+        title="Please wait..."
+        description="Confirming your administrator permissions."
+      />
+    );
+  }
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
