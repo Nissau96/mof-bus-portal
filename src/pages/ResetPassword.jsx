@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -10,9 +10,9 @@ import {
 
 import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
-import { supabase } from "../lib/supabaseClient";
-import { clearCachedProfile } from "../lib/profileCache";
 import { useToast } from "../context/useToast";
+import { clearCachedProfile } from "../lib/profileCache";
+import { supabase } from "../lib/supabaseClient";
 
 /**
  * Reset Password page.
@@ -20,6 +20,9 @@ import { useToast } from "../context/useToast";
  * Allows a user to set a new password after opening the reset link.
  */
 export default function ResetPassword() {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,8 +30,6 @@ export default function ResetPassword() {
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const navigate = useNavigate();
-  const { showToast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
@@ -235,7 +236,7 @@ export default function ResetPassword() {
         </button>
 
         <Link
-          href="/"
+          to="/"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           Back to Login
