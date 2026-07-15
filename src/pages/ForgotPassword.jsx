@@ -1,12 +1,11 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowLeft, Mail, Send } from "lucide-react";
 
 import AuthShell from "../components/auth/AuthShell";
 import FormInput from "../components/auth/FormInput";
-import { supabase } from "../lib/supabaseClient";
-import { Link } from "react-router-dom";
 import { useToast } from "../context/useToast";
-
+import { supabase } from "../lib/supabaseClient";
 
 /**
  * Forgot Password page.
@@ -14,10 +13,11 @@ import { useToast } from "../context/useToast";
  * Sends a Supabase password reset email to the user.
  */
 export default function ForgotPassword() {
+  const { showToast } = useToast();
+
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const { showToast } = useToast();
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -26,10 +26,10 @@ export default function ForgotPassword() {
 
     if (!cleanedEmail) {
       showToast({
-  type: "warning",
-  title: "Email required",
-  message: "Please enter your email address.",
-});
+        type: "warning",
+        title: "Email required",
+        message: "Please enter your email address.",
+      });
       return;
     }
 
@@ -55,16 +55,16 @@ export default function ForgotPassword() {
       );
 
       showToast({
-  type: "success",
-  title: "Reset link sent",
-  message: "Please check your email for password reset instructions.",
-});
+        type: "success",
+        title: "Reset link sent",
+        message: "Please check your email for password reset instructions.",
+      });
     } catch (error) {
       showToast({
-  type: "error",
-  title: "Could not send reset link",
-  message: error.message || "Could not send password reset email.",
-});
+        type: "error",
+        title: "Could not send reset link",
+        message: error.message || "Could not send password reset email.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +108,7 @@ export default function ForgotPassword() {
         </button>
 
         <Link
-          href="/"
+          to="/"
           className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
         >
           <ArrowLeft size={18} />
