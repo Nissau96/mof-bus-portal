@@ -15,6 +15,7 @@ import DashboardShell from "../components/dashboard/DashboardShell";
 import MetricCard from "../components/dashboard/MetricCard";
 import { useTheme } from "../context/useTheme";
 import { apiFetch } from "../lib/api";
+import { useToast } from "../context/useToast";
 
 function formatDisplayDate(dateValue) {
   if (!dateValue) {
@@ -38,6 +39,7 @@ function formatDisplayDate(dateValue) {
  */
 export default function AdminDashboard() {
   const { isDark } = useTheme();
+  const { showToast } = useToast();
 
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +57,11 @@ export default function AdminDashboard() {
 
         setSummary(data);
       } catch (error) {
-        alert(error.message);
+        showToast({
+    type: "error",
+    title: "Could not load admin summary",
+    message: error.message,
+  });
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -68,7 +74,7 @@ export default function AdminDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [showToast]);
 
   const metrics = [
     {
