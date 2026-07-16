@@ -3,7 +3,6 @@ import { getAuthUser } from "../../server/_utils/getAuthUser.js";
 import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.js";
 import { getBookingAvailability } from "../../server/_utils/bookingRules.js";
 
-
 /**
  * Creates a daily bus ticket for the authenticated user.
  *
@@ -42,7 +41,7 @@ export default async function handler(req, res) {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, is_disabled")
+      .select("id, full_name, email, staff_id, role, is_disabled")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -63,7 +62,11 @@ export default async function handler(req, res) {
         message: "Your account has been disabled.",
       });
     }
-    const availability = await getBookingAvailability({ supabase });
+
+    const availability = await getBookingAvailability({
+      supabase,
+      userProfile: profile,
+    });
 
     if (!availability.canBook) {
       await supabase.from("audit_logs").insert({
@@ -76,6 +79,11 @@ export default async function handler(req, res) {
           travel_date: availability.dateISO,
           bus_route: busRoute,
           dropoff_location: dropoffLocation,
+          is_privileged_user: availability.isPrivilegedUser,
+          booking_window_type: availability.bookingWindowType,
+          privileged_booking_window:
+            availability.privilegedBookingWindowLabel,
+          regular_booking_open_time: availability.bookingOpenTimeLabel,
         },
       });
 
@@ -83,6 +91,9 @@ export default async function handler(req, res) {
         message: availability.reason || "Booking is currently closed.",
         bookingStatus: availability.bookingStatus,
         canBook: false,
+        isPrivilegedUser: availability.isPrivilegedUser,
+        privilegedBookingWindow: availability.privilegedBookingWindowLabel,
+        bookingOpenTime: availability.bookingOpenTimeLabel,
       });
     }
 
@@ -108,15 +119,11 @@ export default async function handler(req, res) {
         result,
         bus_route: busRoute,
         dropoff_location: dropoffLocation,
+        is_privileged_user: availability.isPrivilegedUser,
+        booking_window_type: availability.bookingWindowType,
       },
     });
 
-    /**
-     * Send Power Automate email only for new confirmed or waiting bookings.
-     *
-     * If result.status is "already_booked" or "already_waiting",
-     * no email is sent because the user did not receive a new booking.
-     */
     try {
       await supabase.from("audit_logs").insert({
         user_id: user.id,
@@ -140,7 +147,7 @@ export default async function handler(req, res) {
           travelDate: result.travel_date,
           busRoute: result.bus_route,
           dropoffLocation: result.dropoff_location,
-          departureWindow: "4:45 PM - 5:00 PM",
+          departureWindow: availability.departureWindow,
         });
       }
 
@@ -156,7 +163,7 @@ export default async function handler(req, res) {
           travelDate: result.travel_date,
           busRoute: result.bus_route,
           dropoffLocation: result.dropoff_location,
-          departureWindow: "4:45 PM - 5:00 PM",
+          departureWindow: availability.departureWindow,
         });
       }
 
@@ -180,7 +187,13 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      ...result,
+      isPrivilegedUser: availability.isPrivilegedUser,
+      bookingWindowType: availability.bookingWindowType,
+      privilegedBookingWindow: availability.privilegedBookingWindowLabel,
+      regularBookingOpenTime: availability.bookingOpenTimeLabel,
+    });
   } catch (error) {
     return res.status(500).json({
       message: error.message || "Ticket booking failed.",

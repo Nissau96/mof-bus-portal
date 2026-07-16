@@ -1,5 +1,8 @@
 const ACCRA_TIMEZONE = "Africa/Accra";
 
+const PRIVILEGED_BOOKING_OPEN_TIME = "16:00:00";
+const PRIVILEGED_BOOKING_CLOSE_TIME = "16:30:00";
+
 function normalizeTime(timeValue) {
   if (!timeValue) {
     return "";
@@ -57,16 +60,38 @@ export function getAccraDateTimeParts() {
   };
 }
 
+async function checkPrivilegedUser({ supabase, userProfile }) {
+  const staffId = String(userProfile?.staff_id || "").trim();
+
+  if (!staffId) {
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from("privileged_users")
+    .select("id")
+    .eq("staff_id", staffId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
 /**
  * Checks whether booking is currently allowed.
  *
  * Rules:
  * - No weekend booking
  * - No public holiday booking
- * - Booking opens at system_settings.booking_open_time
+ * - Privileged users get early access from 4:00 PM to 4:30 PM
+ * - Regular users open based on system_settings.booking_open_time
+ * - Privileged users can also book during the regular booking window
  * - Booking closes after system_settings.departure_end_time
  */
-export async function getBookingAvailability({ supabase }) {
+export async function getBookingAvailability({ supabase, userProfile = null }) {
   const { dateISO, weekday, time } = getAccraDateTimeParts();
 
   const { data: settings, error: settingsError } = await supabase
@@ -89,37 +114,64 @@ export async function getBookingAvailability({ supabase }) {
     settings?.departure_end_time || "17:00:00"
   );
 
- const { data: holiday, error: holidayError } = await supabase
-  .from("public_holidays")
-  .select("id, holiday_date, observed_date, base_date, name")
-  .or(`observed_date.eq.${dateISO},holiday_date.eq.${dateISO}`)
-  .maybeSingle();
+  const { data: holiday, error: holidayError } = await supabase
+    .from("public_holidays")
+    .select("id, holiday_date, observed_date, base_date, name")
+    .or(`observed_date.eq.${dateISO},holiday_date.eq.${dateISO}`)
+    .maybeSingle();
 
   if (holidayError) {
     throw new Error(holidayError.message);
   }
 
+  const isPrivilegedUser = await checkPrivilegedUser({
+    supabase,
+    userProfile,
+  });
+
   const isWeekend = weekday === "Sat" || weekday === "Sun";
   const isPublicHoliday = Boolean(holiday);
-  const isBeforeBookingOpen = time < bookingOpenTime;
   const isAfterDepartureWindow = time > departureEndTime;
 
-  let bookingStatus = "Open";
-  let reason = "";
+  const isWithinPrivilegedWindow =
+    isPrivilegedUser &&
+    time >= PRIVILEGED_BOOKING_OPEN_TIME &&
+    time <= PRIVILEGED_BOOKING_CLOSE_TIME;
 
-  if (isWeekend) {
-    bookingStatus = "Closed";
-    reason = "Booking is closed on weekends.";
-  } else if (isPublicHoliday) {
-    bookingStatus = "Closed";
-    reason = `Booking is closed because today is a public holiday: ${holiday.name}.`;
-  } else if (isBeforeBookingOpen) {
-    bookingStatus = "Closed";
+  const isWithinRegularWindow = time >= bookingOpenTime;
+
+  let bookingStatus;
+let reason;
+let bookingWindowType = "regular";
+
+if (isWeekend) {
+  bookingStatus = "Closed";
+  reason = "Booking is closed on weekends.";
+} else if (isPublicHoliday) {
+  bookingStatus = "Closed";
+  reason = `Booking is closed because today is a public holiday: ${holiday.name}.`;
+} else if (isAfterDepartureWindow) {
+  bookingStatus = "Closed";
+  reason = "Booking is closed because the departure window has ended.";
+} else if (isWithinPrivilegedWindow) {
+  bookingStatus = "Open";
+  bookingWindowType = "privileged";
+  reason = "";
+} else if (isWithinRegularWindow) {
+  bookingStatus = "Open";
+  bookingWindowType = "regular";
+  reason = "";
+} else {
+  bookingStatus = "Closed";
+
+  if (isPrivilegedUser) {
+    reason = `Privileged booking opens at ${formatTimeLabel(
+      PRIVILEGED_BOOKING_OPEN_TIME
+    )}. Regular booking opens at ${formatTimeLabel(bookingOpenTime)}.`;
+  } else {
     reason = `Booking opens at ${formatTimeLabel(bookingOpenTime)}.`;
-  } else if (isAfterDepartureWindow) {
-    bookingStatus = "Closed";
-    reason = "Booking is closed because the departure window has ended.";
   }
+}
 
   const departureStart = formatTimeLabel(departureStartTime);
   const departureEnd = formatTimeLabel(departureEndTime);
@@ -134,11 +186,18 @@ export async function getBookingAvailability({ supabase }) {
     bookingOpenTime,
     departureStartTime,
     departureEndTime,
+    privilegedBookingOpenTime: PRIVILEGED_BOOKING_OPEN_TIME,
+    privilegedBookingCloseTime: PRIVILEGED_BOOKING_CLOSE_TIME,
     bookingOpenTimeLabel: formatTimeLabel(bookingOpenTime),
+    privilegedBookingWindowLabel: `${formatTimeLabel(
+      PRIVILEGED_BOOKING_OPEN_TIME
+    )} - ${formatTimeLabel(PRIVILEGED_BOOKING_CLOSE_TIME)}`,
     departureWindow:
       departureStart && departureEnd
         ? `${departureStart} - ${departureEnd}`
         : "4:45 PM - 5:00 PM",
     holiday,
+    isPrivilegedUser,
+    bookingWindowType,
   };
 }

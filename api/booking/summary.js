@@ -20,7 +20,29 @@ export default async function handler(req, res) {
     }
 
     const supabase = getSupabaseAdmin();
-    const availability = await getBookingAvailability({ supabase });
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, staff_id, role, is_disabled")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return res.status(500).json({
+        message: profileError.message,
+      });
+    }
+
+    if (!profile) {
+      return res.status(404).json({
+        message: "User profile was not found.",
+      });
+    }
+
+    const availability = await getBookingAvailability({
+      supabase,
+      userProfile: profile,
+    });
 
     const { count: confirmedCount, error: confirmedError } = await supabase
       .from("daily_tickets")
@@ -54,9 +76,12 @@ export default async function handler(req, res) {
       waitingCount: waitingCount || 0,
       departureWindow: availability.departureWindow,
       bookingOpenTime: availability.bookingOpenTimeLabel,
+      privilegedBookingWindow: availability.privilegedBookingWindowLabel,
       bookingStatus: availability.bookingStatus,
       bookingStatusReason: availability.reason,
       canBook: availability.canBook,
+      isPrivilegedUser: availability.isPrivilegedUser,
+      bookingWindowType: availability.bookingWindowType,
     });
   } catch (error) {
     return res.status(500).json({
