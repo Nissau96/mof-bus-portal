@@ -32,22 +32,29 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleStaffLogin() {
-    const data = await apiFetch("/api/auth/login-staff", {
-      method: "POST",
-      body: JSON.stringify({
-        staffId: staffId.trim(),
-        password,
-      }),
-    });
+  const data = await apiFetch("/api/auth/login-staff", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      staffId: staffId.trim(),
+      password,
+    }),
+  });
 
-    await saveSupabaseSession(data.session);
-
-    setCachedProfile(data.profile);
-
-    navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
-      replace: true,
-    });
+  if (!data?.session) {
+    throw new Error("Login succeeded but no session was returned.");
   }
+
+  await saveSupabaseSession(data.session);
+
+  setCachedProfile(data.profile);
+
+  navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
+    replace: true,
+  });
+}
 
   async function handleInternLogin() {
     const { data, error } = await supabase.auth.signInWithPassword({

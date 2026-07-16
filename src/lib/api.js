@@ -1,6 +1,10 @@
 import { supabase } from "./supabaseClient";
 import { clearCachedProfile } from "./profileCache";
 
+function isAuthEndpoint(path) {
+  return String(path || "").startsWith("/api/auth/");
+}
+
 async function handleUnauthorizedSession() {
   clearCachedProfile();
 
@@ -44,7 +48,7 @@ export async function apiFetch(path, options = {}) {
 
   const data = await readResponseBody(response);
 
-  if (response.status === 401) {
+  if (response.status === 401 && !isAuthEndpoint(path)) {
     await handleUnauthorizedSession();
 
     throw new Error("Your session has expired. Please log in again.");
