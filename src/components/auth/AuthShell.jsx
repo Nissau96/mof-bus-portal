@@ -1,8 +1,9 @@
-import { BusFront } from "lucide-react";
-
 /**
  * AuthShell provides the shared layout for login and registration pages.
  * It keeps the background, logo area, title, subtitle, and centered card consistent.
+ *
+ * Place the Ministry logo file in:
+ * public/moflogo.png
  */
 export default function AuthShell({
   title,
@@ -15,8 +16,12 @@ export default function AuthShell({
       <section className="mx-auto flex min-h-[calc(100vh-48px)] w-full max-w-6xl items-center justify-center">
         <div className={wide ? "w-full max-w-xl" : "w-full max-w-md"}>
           <div className="mb-6 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-mof-border bg-mof-surface-muted text-mof-primary shadow-sm">
-              <BusFront size={30} />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-mof-border bg-mof-surface-muted p-2 shadow-sm">
+              <img
+                src="/moflogo.png"
+                alt="Ministry of Finance Ghana logo"
+                className="h-full w-full object-contain"
+              />
             </div>
 
             <h1 className="mt-5 text-3xl font-bold tracking-tight text-mof-text sm:text-4xl">
