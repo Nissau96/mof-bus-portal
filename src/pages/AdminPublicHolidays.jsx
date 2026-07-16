@@ -278,7 +278,13 @@ export default function AdminPublicHolidays() {
   }, [showToast]);
 
   useEffect(() => {
-    loadHolidays();
+    const timeoutId = window.setTimeout(() => {
+      loadHolidays();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadHolidays]);
 
   async function handleGenerateYear(event) {
