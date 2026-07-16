@@ -122,7 +122,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
           </p>
 
           <p
-            className={`mt-1 break-words text-sm font-black ${
+            className={`mt-1 wrap-break-word text-sm font-black ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -238,7 +238,7 @@ function AuditLogCard({ log, isDark }) {
         </p>
 
         <pre
-          className={`mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs font-semibold leading-6 ${
+          className={`mt-3 max-h-72 overflow-auto whitespace-pre-wrap wrap-break-word text-xs font-semibold leading-6 ${
             isDark ? "text-slate-300" : "text-slate-700"
           }`}
         >
@@ -374,7 +374,13 @@ export default function AdminAuditLogs() {
   }, [showToast]);
 
   useEffect(() => {
-    loadAuditLogs();
+    const timeoutId = window.setTimeout(() => {
+      loadAuditLogs();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadAuditLogs]);
 
   function handleSearchChange(event) {
