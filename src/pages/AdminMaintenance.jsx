@@ -96,7 +96,13 @@ export default function AdminMaintenance() {
   }, [showToast]);
 
   useEffect(() => {
-    loadArchivePreview();
+    const timeoutId = window.setTimeout(() => {
+      loadArchivePreview();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadArchivePreview]);
 
   async function handleArchiveOldTickets() {
