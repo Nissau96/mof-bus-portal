@@ -1,32 +1,29 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import BookTicket from "./pages/BookTicket";
-import SupabaseTest from "./pages/SupabaseTest";
-import Profile from "./pages/Profile";
-import BookingHistory from "./pages/BookingHistory";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-
-import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminRoute from "./components/auth/AdminRoute";
-
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminTickets from "./pages/AdminTickets";
-import AdminUsers from "./pages/AdminUsers";
-import AdminSettings from "./pages/AdminSettings";
-import AdminAuditLogs from "./pages/AdminAuditLogs";
-import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
-import AdminBookingHistory from "./pages/AdminBookingHistory";
-import AdminPublicHolidays from "./pages/AdminPublicHolidays";
-import AdminMaintenance from "./pages/AdminMaintenance";
-import AdminManifest from "./pages/AdminManifest";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
 
-
+import AdminAuditLogs from "./pages/AdminAuditLogs";
+import AdminBookingHistory from "./pages/AdminBookingHistory";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminMaintenance from "./pages/AdminMaintenance";
+import AdminManifest from "./pages/AdminManifest";
+import AdminPrivilegedUsers from "./pages/AdminPrivilegedUsers";
+import AdminPublicHolidays from "./pages/AdminPublicHolidays";
+import AdminSettings from "./pages/AdminSettings";
+import AdminTickets from "./pages/AdminTickets";
+import AdminUsers from "./pages/AdminUsers";
+import BookingHistory from "./pages/BookingHistory";
+import BookTicket from "./pages/BookTicket";
+import Dashboard from "./pages/Dashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
+import SupabaseTest from "./pages/SupabaseTest";
 
 function ProtectedAdminPage({ children }) {
   return (
@@ -57,6 +54,7 @@ export default function App() {
             </PublicRoute>
           }
         />
+
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -194,17 +192,6 @@ export default function App() {
             </ProtectedAdminPage>
           }
         />
-
-        <Route
-          path="/admin/manifest"
-          element={
-            <ProtectedAdminPage>
-              <AdminManifest />
-            </ProtectedAdminPage>
-          }
-        />
-
-
 
         <Route path="*" element={<NotFound />} />
       </Routes>
