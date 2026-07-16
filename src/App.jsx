@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 import AdminRoute from "./components/auth/AdminRoute";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -35,7 +35,7 @@ function ProtectedAdminPage({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+   
       <Routes>
         <Route
           path="/"
@@ -195,6 +195,6 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+    
   );
 }
