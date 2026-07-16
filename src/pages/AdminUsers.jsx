@@ -90,7 +90,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
           </p>
 
           <p
-            className={`mt-1 break-words text-sm font-black ${
+            className={`mt-1 wrap-break-word text-sm font-black ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -361,7 +361,13 @@ export default function AdminUsers() {
   }, [showToast]);
 
   useEffect(() => {
-    loadUsers();
+    const timeoutId = window.setTimeout(() => {
+      loadUsers();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadUsers]);
 
   function handleSearchChange(event) {
@@ -551,10 +557,12 @@ export default function AdminUsers() {
           >
             <div className="flex items-center gap-3">
               <UsersRound size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Total Users
                 </p>
+
                 <p className="mt-1 text-lg font-black">{users.length}</p>
               </div>
             </div>
