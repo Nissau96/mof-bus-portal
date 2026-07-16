@@ -61,6 +61,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
       <div className="flex items-start gap-3">
         <Icon
           size={18}
+          aria-hidden="true"
           className={isDark ? "text-emerald-200" : "text-mof-primary"}
         />
 
@@ -74,7 +75,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
           </p>
 
           <p
-            className={`mt-1 wrap-break-word text-sm font-black ${
+            className={`mt-1 break-words text-sm font-black ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -86,8 +87,84 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
   );
 }
 
+function UserSearchResultCard({
+  user,
+  isDark,
+  isSelected,
+  onSelect,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(user)}
+      className={`w-full rounded-2xl border p-4 text-left transition ${
+        isSelected
+          ? isDark
+            ? "border-emerald-300 bg-emerald-500/10"
+            : "border-mof-primary bg-emerald-50"
+          : isDark
+            ? "border-white/10 bg-white/5 hover:bg-white/10"
+            : "border-slate-200 bg-slate-50 hover:bg-white"
+      }`}
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p
+            className={`text-base font-black ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
+          >
+            {user.full_name || "Unnamed user"}
+          </p>
+
+          <p
+            className={`mt-1 text-sm font-semibold ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}
+          >
+            {user.email || "No email"} • {getRoleLabel(user.role)}
+          </p>
+        </div>
+
+        <span
+          className={`inline-flex w-fit rounded-full px-3 py-2 text-xs font-black uppercase tracking-wide ${
+            isSelected
+              ? isDark
+                ? "bg-emerald-500/20 text-emerald-100"
+                : "bg-white text-mof-primary"
+              : isDark
+                ? "bg-white/10 text-slate-200"
+                : "bg-white text-slate-700"
+          }`}
+        >
+          {isSelected ? "Selected" : "Select"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <p className={isDark ? "text-sm text-slate-300" : "text-sm text-slate-600"}>
+          Staff ID: <strong>{user.staff_id || "N/A"}</strong>
+        </p>
+
+        <p className={isDark ? "text-sm text-slate-300" : "text-sm text-slate-600"}>
+          Division: <strong>{user.division || "N/A"}</strong>
+        </p>
+
+        <p className={isDark ? "text-sm text-slate-300" : "text-sm text-slate-600"}>
+          Route: <strong>{user.bus_route || "N/A"}</strong>
+        </p>
+
+        <p className={isDark ? "text-sm text-slate-300" : "text-sm text-slate-600"}>
+          Status: <strong>{user.is_disabled ? "Disabled" : "Active"}</strong>
+        </p>
+      </div>
+    </button>
+  );
+}
+
 function PrivilegedUserCard({ record, isDark, onRemove, isRemoving }) {
   const profile = record.profile;
+  const displayStaffId = profile?.staff_id || record.staff_id || "N/A";
 
   return (
     <article
@@ -106,7 +183,7 @@ function PrivilegedUserCard({ record, isDark, onRemove, isRemoving }) {
                 : "bg-emerald-50 text-mof-primary"
             }`}
           >
-            <ShieldCheck size={24} />
+            <ShieldCheck size={24} aria-hidden="true" />
           </div>
 
           <div>
@@ -131,7 +208,7 @@ function PrivilegedUserCard({ record, isDark, onRemove, isRemoving }) {
                 isDark ? "text-slate-400" : "text-slate-600"
               }`}
             >
-              Staff ID: {record.staff_id}
+              Staff ID: {displayStaffId}
             </p>
           </div>
         </div>
@@ -157,7 +234,7 @@ function PrivilegedUserCard({ record, isDark, onRemove, isRemoving }) {
                 : "bg-red-50 text-red-700 hover:bg-red-100"
             }`}
           >
-            <Trash2 size={14} />
+            <Trash2 size={14} aria-hidden="true" />
             {isRemoving ? "Removing..." : "Remove"}
           </button>
         </div>
@@ -208,7 +285,7 @@ function PrivilegedUserCard({ record, isDark, onRemove, isRemoving }) {
 
         <InfoPill
           label="Staff ID"
-          value={record.staff_id}
+          value={displayStaffId}
           icon={IdCard}
           isDark={isDark}
         />
@@ -274,7 +351,7 @@ function PaginationControls({
                 : "border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} aria-hidden="true" />
             Previous
           </button>
 
@@ -308,7 +385,7 @@ function PaginationControls({
             }`}
           >
             Next
-            <ChevronRight size={16} />
+            <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -319,7 +396,12 @@ function PaginationControls({
 /**
  * Admin Privileged Users page.
  *
- * Allows admins to manage privileged staff users.
+ * Allows admins to manage privileged users from profiles.
+ *
+ * Supports:
+ * - Staff users
+ * - Intern/NSP users
+ * - Search by name, email, Staff ID, phone, division, or bus route
  *
  * Pagination:
  * - 10 records per page
@@ -329,7 +411,10 @@ export default function AdminPrivilegedUsers() {
   const { showToast } = useToast();
 
   const [privilegedUsers, setPrivilegedUsers] = useState([]);
-  const [staffId, setStaffId] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [userResults, setUserResults] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -356,25 +441,68 @@ export default function AdminPrivilegedUsers() {
   }, [showToast]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      loadPrivilegedUsers();
-    }, 0);
+  const timeoutId = window.setTimeout(() => {
+    loadPrivilegedUsers();
+  }, 0);
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [loadPrivilegedUsers]);
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}, [loadPrivilegedUsers]);
+
+  async function handleSearchUsers(event) {
+    event.preventDefault();
+
+    const cleanedSearch = userSearch.trim();
+
+    if (!cleanedSearch) {
+      showToast({
+        type: "warning",
+        title: "Search required",
+        message:
+          "Enter a name, email, Staff ID, phone number, division, or bus route.",
+      });
+      return;
+    }
+
+    try {
+      setIsSearchingUsers(true);
+      setSelectedUser(null);
+
+      const data = await apiFetch(
+        `/api/admin/privileged-users?searchUsers=${encodeURIComponent(
+          cleanedSearch
+        )}`
+      );
+
+      setUserResults(data.users || []);
+
+      if (!data.users?.length) {
+        showToast({
+          type: "warning",
+          title: "No users found",
+          message: "No matching profile was found for your search.",
+        });
+      }
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "User search failed",
+        message: error.message || "Could not search users.",
+      });
+    } finally {
+      setIsSearchingUsers(false);
+    }
+  }
 
   async function handleAddPrivilegedUser(event) {
     event.preventDefault();
 
-    const cleanedStaffId = staffId.trim();
-
-    if (!cleanedStaffId) {
+    if (!selectedUser?.id) {
       showToast({
         type: "warning",
-        title: "Staff ID required",
-        message: "Enter a Staff ID before adding a privileged user.",
+        title: "User selection required",
+        message: "Search for a user and select them before adding.",
       });
       return;
     }
@@ -385,7 +513,7 @@ export default function AdminPrivilegedUsers() {
       const data = await apiFetch("/api/admin/privileged-users", {
         method: "POST",
         body: JSON.stringify({
-          staffId: cleanedStaffId,
+          profileId: selectedUser.id,
         }),
       });
 
@@ -393,13 +521,16 @@ export default function AdminPrivilegedUsers() {
         data.privilegedUser,
         ...currentRecords,
       ]);
-      setStaffId("");
+
+      setUserSearch("");
+      setUserResults([]);
+      setSelectedUser(null);
       setCurrentPage(1);
 
       showToast({
         type: "success",
         title: "Privileged user added",
-        message: data.message || "The staff member has been added successfully.",
+        message: data.message || "The user has been added successfully.",
       });
     } catch (error) {
       showToast({
@@ -413,8 +544,10 @@ export default function AdminPrivilegedUsers() {
   }
 
   async function handleRemovePrivilegedUser(record) {
+    const displayName = record.profile?.full_name || record.staff_id || "this user";
+
     const confirmed = window.confirm(
-      `Remove Staff ID ${record.staff_id} from the privileged users list?`
+      `Remove ${displayName} from the privileged users list?`
     );
 
     if (!confirmed) {
@@ -441,8 +574,7 @@ export default function AdminPrivilegedUsers() {
       showToast({
         type: "success",
         title: "Privileged user removed",
-        message:
-          data.message || "The staff member has been removed successfully.",
+        message: data.message || "The user has been removed successfully.",
       });
     } catch (error) {
       showToast({
@@ -460,6 +592,11 @@ export default function AdminPrivilegedUsers() {
     setCurrentPage(1);
   }
 
+  function handleUserSearchChange(event) {
+    setUserSearch(event.target.value);
+    setSelectedUser(null);
+  }
+
   const filteredUsers = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
@@ -472,6 +609,7 @@ export default function AdminPrivilegedUsers() {
 
       return [
         record.staff_id,
+        profile?.staff_id,
         profile?.full_name,
         profile?.email,
         profile?.phone,
@@ -527,7 +665,7 @@ export default function AdminPrivilegedUsers() {
               : "text-slate-600 hover:text-mof-primary"
           }`}
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={17} aria-hidden="true" />
           Back to admin dashboard
         </Link>
       </div>
@@ -562,8 +700,8 @@ export default function AdminPrivilegedUsers() {
                 isDark ? "text-white" : "text-slate-700"
               }`}
             >
-              Manage staff who should receive priority consideration in the
-              daily bus booking process.
+              Manage staff and interns who should receive priority consideration
+              in the daily bus booking process.
             </p>
           </div>
 
@@ -573,7 +711,7 @@ export default function AdminPrivilegedUsers() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <ShieldCheck size={22} />
+              <ShieldCheck size={22} aria-hidden="true" />
 
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
@@ -596,8 +734,27 @@ export default function AdminPrivilegedUsers() {
             : "border border-slate-200 bg-white"
         }`}
       >
+        <div className="mb-4">
+          <h2
+            className={`text-xl font-black ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
+          >
+            Add Privileged User
+          </h2>
+
+          <p
+            className={`mt-1 text-sm leading-6 ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}
+          >
+            Search profiles by name, email, Staff ID, phone, division, or route.
+            This supports both staff and Intern/NSP users.
+          </p>
+        </div>
+
         <form
-          onSubmit={handleAddPrivilegedUser}
+          onSubmit={handleSearchUsers}
           className="grid gap-3 lg:grid-cols-[1fr_auto]"
         >
           <label
@@ -607,30 +764,69 @@ export default function AdminPrivilegedUsers() {
                 : "border-slate-200 bg-slate-50 text-slate-600"
             }`}
           >
-            <IdCard size={17} />
+            <Search size={17} aria-hidden="true" />
 
             <input
               type="text"
-              value={staffId}
-              onChange={(event) => setStaffId(event.target.value)}
-              placeholder="Enter Staff ID to add privileged user"
+              value={userSearch}
+              onChange={handleUserSearchChange}
+              placeholder="Search name, email, Staff ID, phone, division, or route"
               className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-inherit"
             />
           </label>
 
           <button
             type="submit"
-            disabled={isAdding}
+            disabled={isSearchingUsers}
             className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
               isDark
                 ? "bg-white text-slate-950 hover:bg-emerald-100"
                 : "bg-mof-primary text-white hover:bg-mof-primary-container"
             }`}
           >
-            <Plus size={18} />
-            {isAdding ? "Adding..." : "Add Privileged User"}
+            <Search size={18} aria-hidden="true" />
+            {isSearchingUsers ? "Searching..." : "Search Users"}
           </button>
         </form>
+
+        {userResults.length > 0 && (
+          <div className="mt-5 space-y-3">
+            {userResults.map((user) => (
+              <UserSearchResultCard
+                key={user.id}
+                user={user}
+                isDark={isDark}
+                isSelected={selectedUser?.id === user.id}
+                onSelect={setSelectedUser}
+              />
+            ))}
+          </div>
+        )}
+
+        {selectedUser && (
+          <form onSubmit={handleAddPrivilegedUser} className="mt-5">
+            <button
+              type="submit"
+              disabled={isAdding || selectedUser.is_disabled}
+              className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${
+                isDark
+                  ? "bg-white text-slate-950 hover:bg-emerald-100"
+                  : "bg-mof-primary text-white hover:bg-mof-primary-container"
+              }`}
+            >
+              <Plus size={18} aria-hidden="true" />
+              {isAdding
+                ? "Adding..."
+                : `Add ${selectedUser.full_name || "Selected User"}`}
+            </button>
+
+            {selectedUser.is_disabled && (
+              <p className="mt-2 text-sm font-bold text-red-600">
+                Disabled users cannot be added.
+              </p>
+            )}
+          </form>
+        )}
       </section>
 
       <section
@@ -647,13 +843,13 @@ export default function AdminPrivilegedUsers() {
               : "border-slate-200 bg-slate-50 text-slate-600"
           }`}
         >
-          <Search size={17} />
+          <Search size={17} aria-hidden="true" />
 
           <input
             type="search"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search name, email, Staff ID, division, route..."
+            placeholder="Search privileged users by name, email, Staff ID, division, route..."
             className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-inherit"
           />
         </label>
