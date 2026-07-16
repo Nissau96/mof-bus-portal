@@ -32,29 +32,29 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleStaffLogin() {
-  const data = await apiFetch("/api/auth/login-staff", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      staffId: staffId.trim(),
-      password,
-    }),
-  });
+    const data = await apiFetch("/api/auth/login-staff", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        staffId: staffId.trim(),
+        password,
+      }),
+    });
 
-  if (!data?.session) {
-    throw new Error("Login succeeded but no session was returned.");
+    if (!data?.session) {
+      throw new Error("Login succeeded but no session was returned.");
+    }
+
+    await saveSupabaseSession(data.session);
+
+    setCachedProfile(data.profile);
+
+    navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
+      replace: true,
+    });
   }
-
-  await saveSupabaseSession(data.session);
-
-  setCachedProfile(data.profile);
-
-  navigate(data.profile?.role === "admin" ? "/admin" : "/dashboard", {
-    replace: true,
-  });
-}
 
   async function handleInternLogin() {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -126,98 +126,130 @@ export default function Login() {
   }
 
   return (
-    <AuthShell
-      title="Login"
-      subtitle="Transport Booking Portal"
-    >
-      <AuthTabs activeTab={activeTab} onChange={setActiveTab} />
+    <>
+      {isSubmitting && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-mof-bg/90 px-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-mof-border bg-mof-surface p-6 text-center shadow-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-mof-border bg-mof-surface-muted p-2 shadow-sm">
+              <img
+                src="/moflogo.png"
+                alt="Ministry of Finance Ghana logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-      <form onSubmit={handleLogin} className="space-y-5 p-5 sm:p-6">
-        {activeTab === "staff" ? (
+            <div className="mx-auto mt-6 h-10 w-10 animate-spin rounded-full border-4 border-mof-border border-t-mof-primary" />
+
+            <h2 className="mt-5 text-xl font-bold text-mof-text">
+              Signing you in...
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-mof-text-muted">
+              Please wait while we verify your account.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <AuthShell title="Login" subtitle="Transport Booking Portal">
+        <AuthTabs activeTab={activeTab} onChange={setActiveTab} />
+
+        <form onSubmit={handleLogin} className="space-y-5 p-5 sm:p-6">
+          {activeTab === "staff" ? (
+            <div className="relative">
+              <FormInput
+                id="staffId"
+                label="Staff ID"
+                placeholder="Enter your Staff ID"
+                value={staffId}
+                onChange={setStaffId}
+                disabled={isSubmitting}
+              />
+
+              <UserRound
+                className="pointer-events-none absolute bottom-3 left-3 hidden text-mof-text-muted"
+                size={18}
+              />
+            </div>
+          ) : (
+            <FormInput
+              id="email"
+              label="Email Address"
+              type="email"
+              placeholder="name@mof.gov.gh"
+              value={email}
+              onChange={setEmail}
+              disabled={isSubmitting}
+            />
+          )}
+
           <div className="relative">
             <FormInput
-              id="staffId"
-              label="Staff ID"
-              placeholder="Enter your Staff ID"
-              value={staffId}
-              onChange={setStaffId}
+              id="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={setPassword}
+              disabled={isSubmitting}
             />
 
-            <UserRound
+            <LockKeyhole
               className="pointer-events-none absolute bottom-3 left-3 hidden text-mof-text-muted"
               size={18}
             />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((currentValue) => !currentValue)}
+              disabled={isSubmitting}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+              className="absolute bottom-3 right-3 text-mof-text-muted hover:text-mof-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
           </div>
-        ) : (
-          <FormInput
-            id="email"
-            label="Email Address"
-            type="email"
-            placeholder="name@mof.gov.gh"
-            value={email}
-            onChange={setEmail}
-          />
-        )}
 
-        <div className="relative">
-          <FormInput
-            id="password"
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
-            value={password}
-            onChange={setPassword}
-          />
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-sm text-mof-text">
+              <input
+                type="checkbox"
+                disabled={isSubmitting}
+                className="checkbox checkbox-sm border-mof-border disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              Remember me
+            </label>
 
-          <LockKeyhole
-            className="pointer-events-none absolute bottom-3 left-3 hidden text-mof-text-muted"
-            size={18}
-          />
+            <Link
+              to="/forgot-password"
+              className="text-sm font-semibold text-mof-primary hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
 
           <button
-            type="button"
-            onClick={() => setShowPassword((currentValue) => !currentValue)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            title={showPassword ? "Hide password" : "Show password"}
-            className="absolute bottom-3 right-3 text-mof-text-muted hover:text-mof-primary"
+            type="submit"
+            disabled={isSubmitting}
+            className="btn min-h-12 w-full rounded-xl border-0 bg-mof-primary text-white hover:bg-mof-primary-container disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+            Sign In
+            <ArrowRight size={18} />
           </button>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex items-center gap-2 text-sm text-mof-text">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm border-mof-border"
-            />
-            Remember me
-          </label>
 
           <Link
-            to="/forgot-password"
-            className="text-sm font-semibold text-mof-primary hover:underline"
+            to="/register"
+            className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
           >
-            Forgot Password?
+            Create Account
           </Link>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn min-h-12 w-full rounded-xl border-0 bg-mof-primary text-white hover:bg-mof-primary-container disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Signing In..." : "Sign In"}
-          {!isSubmitting && <ArrowRight size={18} />}
-        </button>
-
-        <Link
-          to="/register"
-          className="btn min-h-12 w-full rounded-xl border border-mof-border bg-white text-mof-text hover:bg-mof-surface-muted"
-        >
-          Create Account
-        </Link>
-      </form>
-    </AuthShell>
+        </form>
+      </AuthShell>
+    </>
   );
 }
