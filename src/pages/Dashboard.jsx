@@ -101,7 +101,13 @@ export default function Dashboard() {
   }, [showToast]);
 
   useEffect(() => {
-    loadDashboardData();
+    const timeoutId = window.setTimeout(() => {
+      loadDashboardData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadDashboardData]);
 
   const firstName = profile?.full_name?.split(" ")?.[0] || "User";
@@ -181,13 +187,13 @@ export default function Dashboard() {
           }`}
         >
           <div
-            className={`pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full border-[22px] ${
+            className={`pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full border-22 ${
               isDark ? "border-white/5" : "border-emerald-100"
             }`}
           />
 
           <div
-            className={`pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full border-[18px] ${
+            className={`pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full border-18 ${
               isDark ? "border-white/5" : "border-emerald-50"
             }`}
           />
