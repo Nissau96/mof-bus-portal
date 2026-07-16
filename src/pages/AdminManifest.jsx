@@ -348,7 +348,13 @@ export default function AdminManifest() {
   );
 
   useEffect(() => {
-    loadManifest(travelDate, selectedBusRoute);
+    const timeoutId = window.setTimeout(() => {
+      loadManifest(travelDate, selectedBusRoute);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadManifest, travelDate, selectedBusRoute]);
 
   function handleDateChange(event) {
