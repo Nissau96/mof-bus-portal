@@ -68,10 +68,12 @@ const adminNavItems = [
 
 function MenuLink({ item, isDark, onClick }) {
   const Icon = item.icon;
+  const shouldUseExactMatch = item.href === "/admin" || item.href === "/dashboard";
 
   return (
     <NavLink
       to={item.href}
+      end={shouldUseExactMatch}
       onClick={onClick}
       className={({ isActive }) =>
         `flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
