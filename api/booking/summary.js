@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
-import { getAuthUser } from "../_utils/getAuthUser.js";
-import { getBookingAvailability } from "../_utils/bookingRules.js";
+import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
+import { getAuthUser } from "../../server/_utils/getAuthUser.js";
+import { getBookingAvailability } from "../../server/_utils/bookingRules.js";
 
 /**
  * Returns today's booking summary for the authenticated user.

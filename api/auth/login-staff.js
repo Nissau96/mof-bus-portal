@@ -2,7 +2,7 @@ import process from "node:process";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
+import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
 
 /**
  * Staff/Admin login endpoint.

@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
+import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
 
 /**
  * Registers a permanent staff user.

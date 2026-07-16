@@ -1,5 +1,5 @@
-import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
-import { getAuthUser } from "../_utils/getAuthUser.js";
+import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
+import { getAuthUser } from "../../server/_utils/getAuthUser.js";
 
 /**
  * Returns the authenticated user's booking history.

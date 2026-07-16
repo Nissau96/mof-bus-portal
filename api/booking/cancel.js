@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from "../_utils/supabaseAdmin.js";
-import { getAuthUser } from "../_utils/getAuthUser.js";
-import { sendPowerAutomateEmail } from "../_utils/powerAutomateEmail.js";
+import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
+import { getAuthUser } from "../../server/_utils/getAuthUser.js";
+import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.js";
 
 /**
  * Cancels the authenticated user's confirmed ticket for today.
