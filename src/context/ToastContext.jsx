@@ -1,7 +1,7 @@
-import { createContext, useCallback, useMemo, useState } from "react";
-import ToastContainer from "../components/common/ToastContainer";
+import { useCallback, useMemo, useState } from "react";
 
-export const ToastContext = createContext(null);
+import ToastContainer from "../components/common/ToastContainer";
+import { ToastContext } from "./toastContextValue";
 
 function createToastId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -18,16 +18,18 @@ export function ToastProvider({ children }) {
 
   const showToast = useCallback(
     ({ title, message = "", type = "info", duration = 4000 }) => {
+      const safeTitle = title || "Notification";
+
       const toast = {
         id: createToastId(),
-        title,
+        title: safeTitle,
         message,
         type,
       };
 
       setToasts((currentToasts) => [toast, ...currentToasts].slice(0, 4));
 
-      if (duration > 0) {
+      if (duration > 0 && typeof window !== "undefined") {
         window.setTimeout(() => {
           removeToast(toast.id);
         }, duration);
