@@ -22,10 +22,20 @@ export default async function handler(req, res) {
     const { staffId, password } = req.body || {};
 
     const cleanedStaffId = String(staffId || "").trim();
+    const cleanedPassword = String(password || "");
 
-    if (!cleanedStaffId || !password) {
+    if (!cleanedStaffId || !cleanedPassword) {
       return res.status(400).json({
         message: "Staff ID and password are required.",
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return res.status(500).json({
+        message: "Missing Supabase login environment variables.",
       });
     }
 
@@ -46,7 +56,7 @@ export default async function handler(req, res) {
 
     if (!profile) {
       return res.status(401).json({
-        message: "Invalid Staff ID or password.",
+        message: "No staff or admin account was found for this Staff ID.",
       });
     }
 
@@ -56,26 +66,36 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!profile.email) {
+    const cleanedEmail = String(profile.email || "").trim().toLowerCase();
+
+    if (!cleanedEmail) {
       return res.status(400).json({
         message: "No email address is attached to this Staff ID.",
       });
     }
 
-    const supabaseAnon = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
-    );
+    const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     const { data: loginData, error: loginError } =
       await supabaseAnon.auth.signInWithPassword({
-        email: profile.email,
-        password,
+        email: cleanedEmail,
+        password: cleanedPassword,
       });
 
     if (loginError) {
       return res.status(401).json({
-        message: "Invalid Staff ID or password.",
+        message: `Supabase login failed: ${loginError.message}`,
+      });
+    }
+
+    if (!loginData.session) {
+      return res.status(401).json({
+        message: "Supabase login succeeded but no session was returned.",
       });
     }
 
@@ -92,7 +112,10 @@ export default async function handler(req, res) {
       message: "Login successful.",
       user: loginData.user,
       session: loginData.session,
-      profile,
+      profile: {
+        ...profile,
+        email: cleanedEmail,
+      },
     });
   } catch (error) {
     return res.status(500).json({
