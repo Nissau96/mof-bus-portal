@@ -112,7 +112,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
           </p>
 
           <p
-            className={`mt-1 break-words text-sm font-black ${
+            className={`mt-1 wrap-break-word text-sm font-black ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -385,7 +385,13 @@ export default function AdminBookingHistory() {
   }, [showToast]);
 
   useEffect(() => {
-    loadBookingHistory();
+    const timeoutId = window.setTimeout(() => {
+      loadBookingHistory();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadBookingHistory]);
 
   function handleSearchChange(event) {
