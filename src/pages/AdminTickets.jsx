@@ -351,7 +351,13 @@ export default function AdminTickets() {
   }, [showToast]);
 
   useEffect(() => {
-    loadTickets();
+    const timeoutId = window.setTimeout(() => {
+      loadTickets();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadTickets]);
 
   function handleTabChange(tabName) {
@@ -480,10 +486,12 @@ export default function AdminTickets() {
           >
             <div className="flex items-center gap-3">
               <CalendarDays size={22} />
+
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
                   Travel Date
                 </p>
+
                 <p className="mt-1 text-lg font-black">
                   {formatDisplayDate(travelDate)}
                 </p>
