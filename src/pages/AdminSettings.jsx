@@ -244,7 +244,13 @@ export default function AdminSettings() {
   }, [applySettings, showToast]);
 
   useEffect(() => {
-    loadSettings();
+    const timeoutId = window.setTimeout(() => {
+      loadSettings();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadSettings]);
 
   async function handleSubmit(event) {
