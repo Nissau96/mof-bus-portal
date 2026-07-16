@@ -4,14 +4,14 @@ import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
 import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.js";
 
 /**
- * Registers a permanent staff user.
+ * Registers a staff user without requiring a pre-existing employee_registry entry.
  *
- * Security rules:
- * - Staff ID must exist in employee_registry.
- * - Email must match employee_registry.
- * - Full name must match employee_registry.
- * - Division must match employee_registry.
+ * Rules:
+ * - Staff ID is required.
+ * - Staff ID must not already exist in profiles.
+ * - Email must not already exist in profiles.
  * - Password is handled by Supabase Auth.
+ * - WhatsApp group invite email is sent after successful registration if configured.
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -61,42 +61,41 @@ export default async function handler(req, res) {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: registryUser, error: registryError } = await supabase
-      .from("employee_registry")
-      .select("staff_id, full_name, email, division, is_active")
-      .eq("staff_id", cleanedStaffId)
-      .maybeSingle();
+    const { data: existingStaffProfile, error: staffCheckError } =
+      await supabase
+        .from("profiles")
+        .select("id, staff_id")
+        .eq("staff_id", cleanedStaffId)
+        .maybeSingle();
 
-    if (registryError) {
+    if (staffCheckError) {
       return res.status(500).json({
-        message: registryError.message,
+        message: staffCheckError.message,
       });
     }
 
-    if (!registryUser || !registryUser.is_active) {
-      return res.status(400).json({
-        message: "Staff ID was not found in the active employee registry.",
+    if (existingStaffProfile) {
+      return res.status(409).json({
+        message: "This Staff ID has already been registered.",
       });
     }
 
-    const registryEmail = registryUser.email.trim().toLowerCase();
-    const registryName = registryUser.full_name.trim().toLowerCase();
+    const { data: existingEmailProfile, error: emailCheckError } =
+      await supabase
+        .from("profiles")
+        .select("id, email")
+        .eq("email", cleanedEmail)
+        .maybeSingle();
 
-    if (registryEmail !== cleanedEmail) {
-      return res.status(400).json({
-        message: "Email does not match the employee registry.",
+    if (emailCheckError) {
+      return res.status(500).json({
+        message: emailCheckError.message,
       });
     }
 
-    if (registryName !== cleanedFullName.toLowerCase()) {
-      return res.status(400).json({
-        message: "Full name does not match the employee registry.",
-      });
-    }
-
-    if (registryUser.division !== cleanedDivision) {
-      return res.status(400).json({
-        message: "Division does not match the employee registry.",
+    if (existingEmailProfile) {
+      return res.status(409).json({
+        message: "This email address has already been registered.",
       });
     }
 
@@ -130,6 +129,7 @@ export default async function handler(req, res) {
       division: cleanedDivision,
       bus_route: cleanedBusRoute,
       dropoff_location: cleanedDropoffLocation,
+      is_disabled: false,
     });
 
     if (profileError) {
@@ -157,6 +157,7 @@ Your MoF Bus Portal staff account has been created successfully.
 Please join the official bus WhatsApp group using the link below:
 ${whatsappGroupLink}
 
+Staff ID: ${cleanedStaffId}
 Bus Route: ${cleanedBusRoute}
 Drop-off Location: ${cleanedDropoffLocation}
 
@@ -187,6 +188,7 @@ Ministry of Finance Transport Booking Portal`,
         email: cleanedEmail,
         division: cleanedDivision,
         bus_route: cleanedBusRoute,
+        registration_mode: "self_service_without_employee_registry",
         whatsapp_email_sent: whatsappEmailSent,
       },
     });
