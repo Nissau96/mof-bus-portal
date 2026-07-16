@@ -17,7 +17,7 @@ import { supabase } from "../lib/supabaseClient";
 /**
  * Reset Password page.
  *
- * Allows a user to set a new password after opening the reset link.
+ * Allows a user to set a new password after opening the Supabase reset link.
  */
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -36,14 +36,26 @@ export default function ResetPassword() {
 
     async function prepareRecoverySession() {
       try {
+        const currentUrl = new URL(window.location.href);
+        const code = currentUrl.searchParams.get("code");
+
         const hashParams = new URLSearchParams(
           window.location.hash.replace("#", "")
         );
 
         const accessToken = hashParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token");
+        const type = hashParams.get("type");
 
-        if (accessToken && refreshToken) {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            throw error;
+          }
+
+          window.history.replaceState({}, document.title, "/reset-password");
+        } else if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -51,6 +63,18 @@ export default function ResetPassword() {
 
           if (error) {
             throw error;
+          }
+
+          window.history.replaceState({}, document.title, "/reset-password");
+        } else {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (!session && type !== "recovery") {
+            throw new Error(
+              "Password reset session was not found. Please request a new reset link."
+            );
           }
         }
 
@@ -121,6 +145,8 @@ export default function ResetPassword() {
 
       clearCachedProfile();
 
+      await supabase.auth.signOut();
+
       setSuccessMessage(
         "Your password has been updated. You can now log in again."
       );
@@ -131,7 +157,7 @@ export default function ResetPassword() {
         message: "You can now log in with your new password.",
       });
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         navigate("/", { replace: true });
       }, 1500);
     } catch (error) {
