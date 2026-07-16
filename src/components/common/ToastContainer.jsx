@@ -12,6 +12,8 @@ function getToastStyles(type) {
       icon: CheckCircle2,
       wrapper: "border-emerald-200 bg-emerald-50 text-emerald-900",
       iconClass: "text-emerald-600",
+      role: "status",
+      ariaLive: "polite",
     };
   }
 
@@ -20,6 +22,8 @@ function getToastStyles(type) {
       icon: XCircle,
       wrapper: "border-red-200 bg-red-50 text-red-900",
       iconClass: "text-red-600",
+      role: "alert",
+      ariaLive: "assertive",
     };
   }
 
@@ -28,6 +32,8 @@ function getToastStyles(type) {
       icon: AlertTriangle,
       wrapper: "border-amber-200 bg-amber-50 text-amber-900",
       iconClass: "text-amber-600",
+      role: "alert",
+      ariaLive: "assertive",
     };
   }
 
@@ -35,6 +41,8 @@ function getToastStyles(type) {
     icon: Info,
     wrapper: "border-slate-200 bg-white text-slate-900",
     iconClass: "text-mof-primary",
+    role: "status",
+    ariaLive: "polite",
   };
 }
 
@@ -52,10 +60,16 @@ export default function ToastContainer({ toasts, onRemove }) {
         return (
           <div
             key={toast.id}
+            role={styles.role}
+            aria-live={styles.ariaLive}
             className={`rounded-2xl border p-4 shadow-lg backdrop-blur ${styles.wrapper}`}
           >
             <div className="flex items-start gap-3">
-              <Icon size={22} className={`mt-0.5 shrink-0 ${styles.iconClass}`} />
+              <Icon
+                size={22}
+                aria-hidden="true"
+                className={`mt-0.5 shrink-0 ${styles.iconClass}`}
+              />
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black">{toast.title}</p>
@@ -73,7 +87,7 @@ export default function ToastContainer({ toasts, onRemove }) {
                 className="rounded-lg p-1 opacity-70 transition hover:bg-black/5 hover:opacity-100"
                 aria-label="Close notification"
               >
-                <X size={17} />
+                <X size={17} aria-hidden="true" />
               </button>
             </div>
           </div>
