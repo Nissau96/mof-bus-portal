@@ -74,7 +74,7 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
           </p>
 
           <p
-            className={`mt-1 break-words text-sm font-black ${
+            className={`mt-1 wrap-break-word text-sm font-black ${
               isDark ? "text-white" : "text-slate-950"
             }`}
           >
@@ -356,7 +356,13 @@ export default function AdminPrivilegedUsers() {
   }, [showToast]);
 
   useEffect(() => {
-    loadPrivilegedUsers();
+    const timeoutId = window.setTimeout(() => {
+      loadPrivilegedUsers();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [loadPrivilegedUsers]);
 
   async function handleAddPrivilegedUser(event) {
