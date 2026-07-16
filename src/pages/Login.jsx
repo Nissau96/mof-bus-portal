@@ -127,8 +127,8 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Authentication"
-      subtitle="Ministry of Finance Transport Portal"
+      title="Login"
+      subtitle="Transport Booking Portal"
     >
       <AuthTabs activeTab={activeTab} onChange={setActiveTab} />
 
