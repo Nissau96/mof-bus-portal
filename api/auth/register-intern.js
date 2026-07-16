@@ -1,4 +1,7 @@
+import process from "node:process";
+
 import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
+import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.js";
 
 /**
  * Registers an Intern or NSP user.
@@ -42,16 +45,23 @@ export default async function handler(req, res) {
       });
     }
 
+    const cleanedFullName = String(fullName).trim();
+    const cleanedEmail = String(email).trim().toLowerCase();
+    const cleanedPhone = String(phone).trim();
+    const cleanedDivision = String(division).trim();
+    const cleanedBusRoute = String(busRoute).trim();
+    const cleanedDropoffLocation = String(dropoffLocation).trim();
+
     const supabase = getSupabaseAdmin();
 
     const { data: createdUser, error: createUserError } =
       await supabase.auth.admin.createUser({
-        email,
+        email: cleanedEmail,
         password,
         email_confirm: true,
         user_metadata: {
           role: "intern_nsp",
-          full_name: fullName,
+          full_name: cleanedFullName,
         },
       });
 
@@ -67,12 +77,12 @@ export default async function handler(req, res) {
       id: userId,
       role: "intern_nsp",
       staff_id: null,
-      full_name: fullName,
-      email,
-      phone,
-      division,
-      bus_route: busRoute,
-      dropoff_location: dropoffLocation,
+      full_name: cleanedFullName,
+      email: cleanedEmail,
+      phone: cleanedPhone,
+      division: cleanedDivision,
+      bus_route: cleanedBusRoute,
+      dropoff_location: cleanedDropoffLocation,
     });
 
     if (profileError) {
@@ -83,18 +93,59 @@ export default async function handler(req, res) {
       });
     }
 
+    let whatsappEmailSent = false;
+    const whatsappGroupLink = process.env.WHATSAPP_GROUP_LINK;
+
+    if (whatsappGroupLink) {
+      try {
+        await sendPowerAutomateEmail({
+          eventType: "registration_whatsapp_invite",
+          to: cleanedEmail,
+          fullName: cleanedFullName,
+          subject: "Welcome to the MoF Bus Portal",
+          message: `Hello ${cleanedFullName},
+
+Your MoF Bus Portal Intern/NSP account has been created successfully.
+
+Please join the official bus WhatsApp group using the link below:
+${whatsappGroupLink}
+
+Bus Route: ${cleanedBusRoute}
+Drop-off Location: ${cleanedDropoffLocation}
+
+Ministry of Finance Transport Booking Portal`,
+          busRoute: cleanedBusRoute,
+          dropoffLocation: cleanedDropoffLocation,
+        });
+
+        whatsappEmailSent = true;
+      } catch (emailError) {
+        await supabase.from("audit_logs").insert({
+          user_id: userId,
+          action: "registration_whatsapp_email_failed",
+          details: {
+            email: cleanedEmail,
+            error: emailError.message,
+          },
+        });
+      }
+    }
+
     await supabase.from("audit_logs").insert({
       user_id: userId,
       action: "intern_registered",
       details: {
-        email,
-        division,
-        bus_route: busRoute,
+        email: cleanedEmail,
+        division: cleanedDivision,
+        bus_route: cleanedBusRoute,
+        whatsapp_email_sent: whatsappEmailSent,
       },
     });
 
     return res.status(201).json({
-      message: "Intern/NSP account created successfully.",
+      message: whatsappEmailSent
+        ? "Intern/NSP account created successfully. A WhatsApp group invite has been sent to your email."
+        : "Intern/NSP account created successfully.",
     });
   } catch (error) {
     return res.status(500).json({
