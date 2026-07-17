@@ -21,6 +21,7 @@ import { useTheme } from "../context/useTheme";
 import { useToast } from "../context/useToast";
 import { apiFetch } from "../lib/api";
 import { BUS_ROUTE_OPTIONS } from "../constants/busRoutesList";
+import { supabase } from "../lib/supabaseClient";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -371,68 +372,66 @@ export default function AdminManifest() {
   }
 
   async function handleDownloadCsv() {
-    try {
-      const { supabase } = await import("../lib/supabaseClient");
+  try {
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session?.access_token;
 
-      const sessionResult = await supabase.auth.getSession();
-      const accessToken = sessionResult.data.session?.access_token;
-
-      if (!accessToken) {
-        showToast({
-          type: "warning",
-          title: "Login required",
-          message: "You must be logged in to download the manifest.",
-        });
-        return;
-      }
-
-      const response = await fetch(
-        `/api/admin/manifest?date=${encodeURIComponent(
-          travelDate
-        )}&busRoute=${encodeURIComponent(selectedBusRoute)}&format=csv`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Could not download manifest.");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      const routeSlug =
-        selectedBusRoute === "all"
-          ? "all-routes"
-          : selectedBusRoute.toLowerCase().replaceAll(" ", "-");
-
-      link.href = url;
-      link.download = `mof-bus-manifest-${travelDate}-${routeSlug}.csv`;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
-
+    if (!accessToken) {
       showToast({
-        type: "success",
-        title: "Manifest downloaded",
-        message: "The passenger manifest CSV has been downloaded.",
+        type: "warning",
+        title: "Login required",
+        message: "You must be logged in to download the manifest.",
       });
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: "Download failed",
-        message: error.message || "Could not download passenger manifest.",
-      });
+      return;
     }
+
+    const response = await fetch(
+      `/api/admin/manifest?date=${encodeURIComponent(
+        travelDate
+      )}&busRoute=${encodeURIComponent(selectedBusRoute)}&format=csv`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Could not download manifest.");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const routeSlug =
+      selectedBusRoute === "all"
+        ? "all-routes"
+        : selectedBusRoute.toLowerCase().replaceAll(" ", "-");
+
+    link.href = url;
+    link.download = `mof-bus-manifest-${travelDate}-${routeSlug}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    showToast({
+      type: "success",
+      title: "Manifest downloaded",
+      message: "The passenger manifest CSV has been downloaded.",
+    });
+  } catch (error) {
+    showToast({
+      type: "error",
+      title: "Download failed",
+      message: error.message || "Could not download passenger manifest.",
+    });
   }
+}
 
   const filteredManifest = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
