@@ -19,9 +19,11 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import { useTheme } from "../context/useTheme";
 import { useToast } from "../context/useToast";
-import { apiFetch } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
 const ITEMS_PER_PAGE = 10;
+const ONLINE_WINDOW_MINUTES = 5;
+const RECENT_WINDOW_MINUTES = 30;
 
 function getRoleLabel(role) {
   if (role === "admin") return "Admin";
@@ -34,6 +36,40 @@ function getStatusLabel(status) {
   if (status === "online") return "Online";
   if (status === "recent") return "Recently Active";
   return "Offline";
+}
+
+function getPresenceStatus(lastSeenAt) {
+  if (!lastSeenAt) {
+    return "offline";
+  }
+
+  const lastSeenTime = new Date(lastSeenAt).getTime();
+  const diffMinutes = (Date.now() - lastSeenTime) / 1000 / 60;
+
+  if (diffMinutes <= ONLINE_WINDOW_MINUTES) {
+    return "online";
+  }
+
+  if (diffMinutes <= RECENT_WINDOW_MINUTES) {
+    return "recent";
+  }
+
+  return "offline";
+}
+
+function mapProfile(profile) {
+  return {
+    id: profile.id,
+    full_name: profile.full_name,
+    email: profile.email,
+    phone: profile.phone,
+    staff_id: profile.staff_id,
+    role: profile.role,
+    division: profile.division,
+    bus_route: profile.bus_route,
+    dropoff_location: profile.dropoff_location,
+    is_disabled: profile.is_disabled,
+  };
 }
 
 function formatLastSeen(dateValue) {
@@ -385,17 +421,75 @@ export default function AdminActiveUsers() {
     try {
       setIsLoading(true);
 
-      const data = await apiFetch("/api/admin/active-users");
+      const { data: presenceRows, error: presenceError } = await supabase
+        .from("user_presence")
+        .select("user_id, last_seen_at, current_page, user_agent, updated_at")
+        .order("last_seen_at", { ascending: false });
 
-      setUsers(data.users || []);
-      setSummary(
-        data.summary || {
+      if (presenceError) {
+        throw new Error(presenceError.message);
+      }
+
+      const userIds = [
+        ...new Set((presenceRows || []).map((row) => row.user_id).filter(Boolean)),
+      ];
+
+      let profiles = [];
+
+      if (userIds.length > 0) {
+        const { data: profileRows, error: profileError } = await supabase
+          .from("profiles")
+          .select(
+            "id, full_name, email, phone, staff_id, role, division, bus_route, dropoff_location, is_disabled"
+          )
+          .in("id", userIds);
+
+        if (profileError) {
+          throw new Error(profileError.message);
+        }
+
+        profiles = profileRows || [];
+      }
+
+      const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+
+      const mappedUsers = (presenceRows || []).map((presence) => {
+        const profile = profileById.get(presence.user_id) || null;
+
+        return {
+          userId: presence.user_id,
+          lastSeenAt: presence.last_seen_at,
+          currentPage: presence.current_page,
+          userAgent: presence.user_agent,
+          status: getPresenceStatus(presence.last_seen_at),
+          profile: profile ? mapProfile(profile) : null,
+        };
+      });
+
+      const mappedSummary = mappedUsers.reduce(
+        (accumulator, record) => {
+          accumulator.total += 1;
+
+          if (record.status === "online") {
+            accumulator.online += 1;
+          } else if (record.status === "recent") {
+            accumulator.recent += 1;
+          } else {
+            accumulator.offline += 1;
+          }
+
+          return accumulator;
+        },
+        {
           total: 0,
           online: 0,
           recent: 0,
           offline: 0,
         }
       );
+
+      setUsers(mappedUsers);
+      setSummary(mappedSummary);
       setCurrentPage(1);
     } catch (error) {
       showToast({
