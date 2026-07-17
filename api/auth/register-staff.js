@@ -150,18 +150,23 @@ export default async function handler(req, res) {
           to: cleanedEmail,
           fullName: cleanedFullName,
           subject: "Welcome to the MoF Bus Portal",
-          message: `Hello ${cleanedFullName},
-
-Your MoF Bus Portal staff account has been created successfully.
+          message: `Your MoF Bus Portal Staff account has been created successfully.
 
 Please join the official bus WhatsApp group using the link below:
 ${whatsappGroupLink}
 
+Your registration details are:
+
+Account Type: Staff
 Staff ID: ${cleanedStaffId}
+Division: ${cleanedDivision}
 Bus Route: ${cleanedBusRoute}
 Drop-off Location: ${cleanedDropoffLocation}
 
-Ministry of Finance Transport Booking Portal`,
+You can now log in to the Ministry of Finance Transport Booking Portal to book your daily bus ticket when booking opens.`,
+          accountType: "Staff",
+          staffId: cleanedStaffId,
+          division: cleanedDivision,
           busRoute: cleanedBusRoute,
           dropoffLocation: cleanedDropoffLocation,
         });

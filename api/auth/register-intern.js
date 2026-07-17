@@ -54,6 +54,25 @@ export default async function handler(req, res) {
 
     const supabase = getSupabaseAdmin();
 
+    const { data: existingEmailProfile, error: emailCheckError } =
+      await supabase
+        .from("profiles")
+        .select("id, email")
+        .eq("email", cleanedEmail)
+        .maybeSingle();
+
+    if (emailCheckError) {
+      return res.status(500).json({
+        message: emailCheckError.message,
+      });
+    }
+
+    if (existingEmailProfile) {
+      return res.status(409).json({
+        message: "This email address has already been registered.",
+      });
+    }
+
     const { data: createdUser, error: createUserError } =
       await supabase.auth.admin.createUser({
         email: cleanedEmail,
@@ -83,6 +102,7 @@ export default async function handler(req, res) {
       division: cleanedDivision,
       bus_route: cleanedBusRoute,
       dropoff_location: cleanedDropoffLocation,
+      is_disabled: false,
     });
 
     if (profileError) {
@@ -103,17 +123,21 @@ export default async function handler(req, res) {
           to: cleanedEmail,
           fullName: cleanedFullName,
           subject: "Welcome to the MoF Bus Portal",
-          message: `Hello ${cleanedFullName},
-
-Your MoF Bus Portal Intern/NSP account has been created successfully.
+          message: `Your MoF Bus Portal Intern/NSP account has been created successfully.
 
 Please join the official bus WhatsApp group using the link below:
 ${whatsappGroupLink}
 
+Your registration details are:
+
+Account Type: Intern/NSP
+Division: ${cleanedDivision}
 Bus Route: ${cleanedBusRoute}
 Drop-off Location: ${cleanedDropoffLocation}
 
-Ministry of Finance Transport Booking Portal`,
+You can now log in to the Ministry of Finance Transport Booking Portal to book your daily bus ticket when booking opens.`,
+          accountType: "Intern/NSP",
+          division: cleanedDivision,
           busRoute: cleanedBusRoute,
           dropoffLocation: cleanedDropoffLocation,
         });
