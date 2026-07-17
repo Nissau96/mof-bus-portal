@@ -215,16 +215,18 @@ export default async function handler(req, res) {
     }
 
     await supabase.from("audit_logs").insert({
-      user_id: user.id,
-      action: "ticket_booking_attempt",
-      details: {
-        result,
-        bus_route: busRoute,
-        dropoff_location: dropoffLocation,
-        is_privileged_user: availability.isPrivilegedUser,
-        booking_window_type: availability.bookingWindowType,
-      },
-    });
+  user_id: user.id,
+  action: "ticket_booking_attempt",
+  details: {
+    result,
+    bus_route: busRoute,
+    dropoff_location: dropoffLocation,
+    is_privileged_user: availability.isPrivilegedUser,
+    booking_window_type: availability.bookingWindowType,
+    priority_rank: result.priority_rank,
+    user_role: result.user_role,
+  },
+});
 
     try {
       await supabase.from("audit_logs").insert({
@@ -311,12 +313,14 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      ...result,
-      isPrivilegedUser: availability.isPrivilegedUser,
-      bookingWindowType: availability.bookingWindowType,
-      privilegedBookingWindow: availability.privilegedBookingWindowLabel,
-      regularBookingOpenTime: availability.bookingOpenTimeLabel,
-    });
+  ...result,
+  isPrivilegedUser: availability.isPrivilegedUser,
+  bookingWindowType: availability.bookingWindowType,
+  privilegedBookingWindow: availability.privilegedBookingWindowLabel,
+  regularBookingOpenTime: availability.bookingOpenTimeLabel,
+  priorityRank: result.priority_rank,
+  userRole: result.user_role,
+});
   } catch (error) {
     return res.status(500).json({
       message: error.message || "Ticket booking failed.",

@@ -1,7 +1,8 @@
 const ACCRA_TIMEZONE = "Africa/Accra";
 
 const PRIVILEGED_BOOKING_OPEN_TIME = "16:00:00";
-const PRIVILEGED_BOOKING_CLOSE_TIME = "16:30:00";
+const PRIVILEGED_BOOKING_CLOSE_TIME = "16:25:00";
+const REGULAR_BOOKING_RELEASE_TIME = "16:30:00";
 
 function normalizeTime(timeValue) {
   if (!timeValue) {
@@ -61,17 +62,24 @@ export function getAccraDateTimeParts() {
 }
 
 async function checkPrivilegedUser({ supabase, userProfile }) {
+  const profileId = String(userProfile?.id || "").trim();
   const staffId = String(userProfile?.staff_id || "").trim();
 
-  if (!staffId) {
+  if (!profileId && !staffId) {
     return false;
   }
 
-  const { data, error } = await supabase
-    .from("privileged_users")
-    .select("id")
-    .eq("staff_id", staffId)
-    .maybeSingle();
+  let query = supabase.from("privileged_users").select("id").limit(1);
+
+  if (profileId && staffId) {
+    query = query.or(`profile_id.eq.${profileId},staff_id.eq.${staffId}`);
+  } else if (profileId) {
+    query = query.eq("profile_id", profileId);
+  } else {
+    query = query.eq("staff_id", staffId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw new Error(error.message);
@@ -80,15 +88,33 @@ async function checkPrivilegedUser({ supabase, userProfile }) {
   return Boolean(data);
 }
 
+function getUserPriorityRank({ role, isPrivilegedUser }) {
+  if (isPrivilegedUser) {
+    return 1;
+  }
+
+  if (role === "staff" || role === "admin") {
+    return 2;
+  }
+
+  if (role === "intern_nsp") {
+    return 3;
+  }
+
+  return 4;
+}
+
 /**
  * Checks whether booking is currently allowed.
  *
  * Rules:
  * - No weekend booking
  * - No public holiday booking
- * - Privileged users get early access from 4:00 PM to 4:30 PM
- * - Regular users open based on system_settings.booking_open_time
- * - Privileged users can also book during the regular booking window
+ * - Privileged users get early access from 4:00 PM to 4:25 PM
+ * - 4:25 PM to 4:29 PM is a release buffer
+ * - Unused privileged slots are released from 4:30 PM
+ * - From 4:30 PM, staff and NSP/Intern users can both book immediately
+ * - Priority metadata is returned for downstream ticket allocation/reporting
  * - Booking closes after system_settings.departure_end_time
  */
 export async function getBookingAvailability({ supabase, userProfile = null }) {
@@ -106,10 +132,10 @@ export async function getBookingAvailability({ supabase, userProfile = null }) {
     throw new Error(settingsError.message);
   }
 
-  const bookingOpenTime = normalizeTime(settings?.booking_open_time || "16:20:00");
   const departureStartTime = normalizeTime(
     settings?.departure_start_time || "16:45:00"
   );
+
   const departureEndTime = normalizeTime(
     settings?.departure_end_time || "17:00:00"
   );
@@ -129,6 +155,13 @@ export async function getBookingAvailability({ supabase, userProfile = null }) {
     userProfile,
   });
 
+  const userRole = userProfile?.role || "";
+  const isInternOrNsp = userRole === "intern_nsp";
+  const priorityRank = getUserPriorityRank({
+    role: userRole,
+    isPrivilegedUser,
+  });
+
   const isWeekend = weekday === "Sat" || weekday === "Sun";
   const isPublicHoliday = Boolean(holiday);
   const isAfterDepartureWindow = time > departureEndTime;
@@ -138,40 +171,57 @@ export async function getBookingAvailability({ supabase, userProfile = null }) {
     time >= PRIVILEGED_BOOKING_OPEN_TIME &&
     time <= PRIVILEGED_BOOKING_CLOSE_TIME;
 
-  const isWithinRegularWindow = time >= bookingOpenTime;
+  const isWithinReleaseBuffer =
+    time > PRIVILEGED_BOOKING_CLOSE_TIME &&
+    time < REGULAR_BOOKING_RELEASE_TIME;
+
+  const isWithinRegularWindow = time >= REGULAR_BOOKING_RELEASE_TIME;
 
   let bookingStatus;
-let reason;
-let bookingWindowType = "regular";
+  let reason;
+  let bookingWindowType = "regular";
 
-if (isWeekend) {
-  bookingStatus = "Closed";
-  reason = "Booking is closed on weekends.";
-} else if (isPublicHoliday) {
-  bookingStatus = "Closed";
-  reason = `Booking is closed because today is a public holiday: ${holiday.name}.`;
-} else if (isAfterDepartureWindow) {
-  bookingStatus = "Closed";
-  reason = "Booking is closed because the departure window has ended.";
-} else if (isWithinPrivilegedWindow) {
-  bookingStatus = "Open";
-  bookingWindowType = "privileged";
-  reason = "";
-} else if (isWithinRegularWindow) {
-  bookingStatus = "Open";
-  bookingWindowType = "regular";
-  reason = "";
-} else {
-  bookingStatus = "Closed";
-
-  if (isPrivilegedUser) {
-    reason = `Privileged booking opens at ${formatTimeLabel(
-      PRIVILEGED_BOOKING_OPEN_TIME
-    )}. Regular booking opens at ${formatTimeLabel(bookingOpenTime)}.`;
+  if (isWeekend) {
+    bookingStatus = "Closed";
+    reason = "Booking is closed on weekends.";
+  } else if (isPublicHoliday) {
+    bookingStatus = "Closed";
+    reason = `Booking is closed because today is a public holiday: ${holiday.name}.`;
+  } else if (isAfterDepartureWindow) {
+    bookingStatus = "Closed";
+    reason = "Booking is closed because the departure window has ended.";
+  } else if (isWithinPrivilegedWindow) {
+    bookingStatus = "Open";
+    bookingWindowType = "privileged";
+    reason = "";
+  } else if (isWithinReleaseBuffer) {
+    bookingStatus = "Closed";
+    bookingWindowType = "release_buffer";
+    reason = `Privileged booking has closed. Remaining seats will be released at ${formatTimeLabel(
+      REGULAR_BOOKING_RELEASE_TIME
+    )}.`;
+  } else if (isWithinRegularWindow) {
+    bookingStatus = "Open";
+    bookingWindowType =
+      isInternOrNsp && !isPrivilegedUser
+        ? "regular_intern_nsp"
+        : "regular_priority";
+    reason = "";
   } else {
-    reason = `Booking opens at ${formatTimeLabel(bookingOpenTime)}.`;
+    bookingStatus = "Closed";
+
+    if (isPrivilegedUser) {
+      reason = `Privileged booking opens at ${formatTimeLabel(
+        PRIVILEGED_BOOKING_OPEN_TIME
+      )}. Remaining seats are released at ${formatTimeLabel(
+        REGULAR_BOOKING_RELEASE_TIME
+      )}.`;
+    } else {
+      reason = `Booking opens at ${formatTimeLabel(
+        REGULAR_BOOKING_RELEASE_TIME
+      )}.`;
+    }
   }
-}
 
   const departureStart = formatTimeLabel(departureStartTime);
   const departureEnd = formatTimeLabel(departureEndTime);
@@ -183,12 +233,12 @@ if (isWeekend) {
     reason,
     canBook: bookingStatus === "Open",
     capacity: settings?.bus_capacity || 36,
-    bookingOpenTime,
+    bookingOpenTime: REGULAR_BOOKING_RELEASE_TIME,
     departureStartTime,
     departureEndTime,
     privilegedBookingOpenTime: PRIVILEGED_BOOKING_OPEN_TIME,
     privilegedBookingCloseTime: PRIVILEGED_BOOKING_CLOSE_TIME,
-    bookingOpenTimeLabel: formatTimeLabel(bookingOpenTime),
+    bookingOpenTimeLabel: formatTimeLabel(REGULAR_BOOKING_RELEASE_TIME),
     privilegedBookingWindowLabel: `${formatTimeLabel(
       PRIVILEGED_BOOKING_OPEN_TIME
     )} - ${formatTimeLabel(PRIVILEGED_BOOKING_CLOSE_TIME)}`,
@@ -199,5 +249,7 @@ if (isWeekend) {
     holiday,
     isPrivilegedUser,
     bookingWindowType,
+    isInternOrNsp,
+    priorityRank,
   };
 }
