@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Activity,
   Archive,
   ArrowLeft,
   BadgeCheck,
@@ -157,6 +158,14 @@ const adminTools = [
     href: "/admin/tickets",
     buttonLabel: "View Today’s Tickets",
     icon: TicketCheck,
+  },
+  {
+    title: "Active Users",
+    description:
+      "View users currently online or recently active in the bus portal.",
+    href: "/admin/active-users",
+    buttonLabel: "View Active Users",
+    icon: Activity,
   },
   {
     title: "Privileged Users",

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   BusFront,
   FileSearch,
@@ -18,7 +18,10 @@ import {
 import { useTheme } from "../../context/useTheme";
 import { useToast } from "../../context/useToast";
 import { signOutUser } from "../../lib/auth";
+import { apiFetch } from "../../lib/api";
 import { clearCachedProfile, getCachedProfile } from "../../lib/profileCache";
+
+const PRESENCE_HEARTBEAT_INTERVAL_MS = 60000;
 
 const userNavItems = [
   {
@@ -87,7 +90,7 @@ function MenuLink({ item, isDark, onClick }) {
         }`
       }
     >
-      <Icon size={17} />
+      <Icon size={17} aria-hidden="true" />
       <span>{item.label}</span>
     </NavLink>
   );
@@ -96,25 +99,14 @@ function MenuLink({ item, isDark, onClick }) {
 /**
  * DashboardShell provides a shared dashboard layout.
  *
- * Ordinary users see:
- * - Dashboard
- * - Profile
- *
- * Admin users see:
- * - Dashboard
- * - Admin Dashboard
- * - Profile
- * - System Settings
- * - User Management
- * - Audit Logs
- *
- * The profile role is read from localStorage cache so the menu appears
- * immediately without waiting for /api/profile/me.
+ * It also sends a user presence heartbeat every 60 seconds so admins
+ * can see active/recent users.
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -132,6 +124,34 @@ export default function DashboardShell({ children }) {
     : "border-slate-200 bg-[#f7fbf3]/90";
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
+
+  const sendPresenceHeartbeat = useCallback(async () => {
+    try {
+      await apiFetch("/api/presence/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPage: location.pathname,
+        }),
+      });
+    } catch {
+      // Presence should never interrupt the user's session.
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const initialTimeoutId = window.setTimeout(() => {
+      sendPresenceHeartbeat();
+    }, 0);
+
+    const intervalId = window.setInterval(() => {
+      sendPresenceHeartbeat();
+    }, PRESENCE_HEARTBEAT_INTERVAL_MS);
+
+    return () => {
+      window.clearTimeout(initialTimeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, [sendPresenceHeartbeat]);
 
   async function handleLogout() {
     try {
@@ -166,7 +186,7 @@ export default function DashboardShell({ children }) {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link to="/dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950">
-              <BusFront size={22} />
+              <BusFront size={22} aria-hidden="true" />
             </div>
 
             <div>
@@ -189,7 +209,11 @@ export default function DashboardShell({ children }) {
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? (
+                <Sun size={20} aria-hidden="true" />
+              ) : (
+                <Moon size={20} aria-hidden="true" />
+              )}
             </button>
 
             <button
@@ -202,7 +226,11 @@ export default function DashboardShell({ children }) {
               }`}
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
-              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              {isMenuOpen ? (
+                <X size={22} aria-hidden="true" />
+              ) : (
+                <Menu size={22} aria-hidden="true" />
+              )}
             </button>
 
             <button
@@ -215,7 +243,7 @@ export default function DashboardShell({ children }) {
                   : "border-slate-200 text-slate-700 hover:bg-white"
               }`}
             >
-              <LogOut size={17} />
+              <LogOut size={17} aria-hidden="true" />
               {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
@@ -264,7 +292,7 @@ export default function DashboardShell({ children }) {
                   : "border-slate-200 text-slate-700 hover:bg-white"
               }`}
             >
-              <LogOut size={17} />
+              <LogOut size={17} aria-hidden="true" />
               {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
