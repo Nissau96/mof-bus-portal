@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   BusFront,
@@ -18,8 +18,8 @@ import {
 import { useTheme } from "../../context/useTheme";
 import { useToast } from "../../context/useToast";
 import { signOutUser } from "../../lib/auth";
-import { apiFetch } from "../../lib/api";
 import { clearCachedProfile, getCachedProfile } from "../../lib/profileCache";
+import { supabase } from "../../lib/supabaseClient";
 
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60000;
 
@@ -111,7 +111,8 @@ export default function DashboardShell({ children }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const cachedProfile = getCachedProfile();
+  const cachedProfile = useMemo(() => getCachedProfile(), []);
+  const cachedProfileId = cachedProfile?.id || "";
   const isAdmin = cachedProfile?.role === "admin";
   const visibleNavItems = isAdmin ? adminNavItems : userNavItems;
 
@@ -126,17 +127,27 @@ export default function DashboardShell({ children }) {
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
   const sendPresenceHeartbeat = useCallback(async () => {
-    try {
-      await apiFetch("/api/presence/heartbeat", {
-        method: "POST",
-        body: JSON.stringify({
-          currentPage: location.pathname,
-        }),
-      });
-    } catch {
-      // Presence should never interrupt the user's session.
-    }
-  }, [location.pathname]);
+  if (!cachedProfileId) {
+    return;
+  }
+
+  try {
+    await supabase.from("user_presence").upsert(
+      {
+        user_id: cachedProfileId,
+        last_seen_at: new Date().toISOString(),
+        current_page: location.pathname,
+        user_agent: window.navigator.userAgent,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "user_id",
+      }
+    );
+  } catch {
+    // Presence should never interrupt the user's session.
+  }
+}, [cachedProfileId, location.pathname]);
 
   useEffect(() => {
     const initialTimeoutId = window.setTimeout(() => {
