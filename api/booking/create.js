@@ -15,6 +15,108 @@ import { getBookingAvailability } from "../../server/_utils/bookingRules.js";
  *
  * Email failure does not block the ticket booking.
  */
+
+function formatTicketNumber(ticketNumber) {
+  return String(ticketNumber || "").padStart(2, "0");
+}
+
+function formatDateForDisplay(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date = new Date(dateValue);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDateForTicketId(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date = new Date(dateValue);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getBusRouteCode(busRoute) {
+  const routeCodeMap = {
+    "Adenta Bus": "ADE",
+    "Sakumono Bus": "SAK",
+    "Dansoman Bus": "DAN",
+    "Kasoa Bus": "KAS",
+    "Amasaman Bus": "AMA",
+  };
+
+  return routeCodeMap[busRoute] || "BUS";
+}
+
+function buildTicketId({ travelDate, busRoute, ticketNumber }) {
+  const datePart = formatDateForTicketId(travelDate);
+  const routeCode = getBusRouteCode(busRoute);
+  const paddedTicketNumber = formatTicketNumber(ticketNumber);
+
+  return `MOFBUSTIC-${datePart}-${routeCode}-${paddedTicketNumber}`;
+}
+
+function buildConfirmedTicketMessage({
+  ticketId,
+  ticketNumber,
+  travelDate,
+  busRoute,
+  dropoffLocation,
+  departureWindow,
+}) {
+  const styledTicketId = `<span style="color: rgb(97,189,109)"><strong>${ticketId}</strong></span>`;
+  const styledTicketNumber = `<span style="color: rgb(97,189,109)"><strong>${formatTicketNumber(ticketNumber)}</strong></span>`;
+
+  return `Your ticket request has been confirmed.
+
+Your unique ticket ID is: ${styledTicketId}
+
+Ticket Number: ${styledTicketNumber}
+Travel Date: ${formatDateForDisplay(travelDate)}
+Bus Route: ${busRoute}
+Drop-off Location: ${dropoffLocation}
+Departure Window: ${departureWindow}
+
+Please note that this ticket is valid for this travel date only and should be presented when boarding the bus.
+
+Thank you for your submission.`;
+}
+
+function buildWaitingListMessage({
+  waitingPosition,
+  travelDate,
+  busRoute,
+  dropoffLocation,
+  departureWindow,
+}) {
+  const styledWaitingPosition = `<span style="color: rgb(139, 0, 0)"><strong>${waitingPosition}</strong></span>`;
+
+  return `The bus is currently full.
+
+You have been added to the waiting list and will be notified if a seat becomes available.
+
+Waiting List Position: ${styledWaitingPosition}
+Travel Date: ${formatDateForDisplay(travelDate)}
+Bus Route: ${busRoute}
+Drop-off Location: ${dropoffLocation}
+Departure Window: ${departureWindow}
+
+Please keep checking the MoF Bus Portal for updates.`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed." });
@@ -137,13 +239,27 @@ export default async function handler(req, res) {
       });
 
       if (result.status === "confirmed") {
+        const ticketNumber = formatTicketNumber(result.ticket_number);
+        const ticketId = buildTicketId({
+          travelDate: result.travel_date,
+          busRoute: result.bus_route,
+          ticketNumber: result.ticket_number,
+        });
+
         await sendPowerAutomateEmail({
           eventType: "ticket_confirmed",
           to: profile.email,
           fullName: profile.full_name,
-          subject: "Your Bus Ticket Confirmation",
-          message: "Your bus ticket has been confirmed successfully.",
-          ticketNumber: String(result.ticket_number).padStart(2, "0"),
+          subject: "Your MoF Bus Ticket Has Been Confirmed",
+          message: buildConfirmedTicketMessage({
+            ticketId,
+            ticketNumber: result.ticket_number,
+            travelDate: result.travel_date,
+            busRoute: result.bus_route,
+            dropoffLocation: result.dropoff_location,
+            departureWindow: availability.departureWindow,
+          }),
+          ticketNumber,
           travelDate: result.travel_date,
           busRoute: result.bus_route,
           dropoffLocation: result.dropoff_location,
@@ -152,14 +268,21 @@ export default async function handler(req, res) {
       }
 
       if (result.status === "waiting") {
+        const waitingTicketNumber = `Waiting #${result.waiting_position}`;
+
         await sendPowerAutomateEmail({
           eventType: "waiting_list",
           to: profile.email,
           fullName: profile.full_name,
-          subject: "You Have Been Added to the Waiting List",
-          message:
-            "The bus is currently full. You have been added to the waiting list and will be notified if a seat becomes available.",
-          ticketNumber: `Waiting #${result.waiting_position}`,
+          subject: "You Have Been Added to the Bus Waiting List",
+          message: buildWaitingListMessage({
+            waitingPosition: waitingTicketNumber,
+            travelDate: result.travel_date,
+            busRoute: result.bus_route,
+            dropoffLocation: result.dropoff_location,
+            departureWindow: availability.departureWindow,
+          }),
+          ticketNumber: waitingTicketNumber,
           travelDate: result.travel_date,
           busRoute: result.bus_route,
           dropoffLocation: result.dropoff_location,
