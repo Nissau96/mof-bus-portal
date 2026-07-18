@@ -3,6 +3,89 @@ import process from "node:process";
 import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
 import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.js";
 
+function formatRegistrationDateTime() {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "Africa/Accra",
+  }).format(new Date());
+}
+
+async function sendAdminRegistrationNotification({
+  supabase,
+  userId,
+  fullName,
+  email,
+  phone,
+  accountType,
+  staffId = "",
+  division,
+  busRoute,
+  dropoffLocation,
+}) {
+  const adminEmail = process.env.ADMIN_REGISTRATION_EMAIL;
+
+  if (!adminEmail) {
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      action: "admin_registration_email_skipped",
+      details: {
+        reason: "ADMIN_REGISTRATION_EMAIL is not configured.",
+        email,
+        account_type: accountType,
+      },
+    });
+
+    return false;
+  }
+
+  try {
+    const registrationDateTime = formatRegistrationDateTime();
+
+    const staffIdLine = staffId ? `Staff ID: ${staffId}\n` : "";
+
+    await sendPowerAutomateEmail({
+      eventType: "admin_new_user_registered",
+      to: adminEmail,
+      fullName: "Administrator",
+      subject: `New ${accountType} Registration - ${fullName}`,
+      message: `A new user has registered on the MoF Bus Portal.
+
+Registration Details:
+
+Full Name: ${fullName}
+Email: ${email}
+Phone: ${phone}
+Account Type: ${accountType}
+${staffIdLine}Division: ${division}
+Bus Route: ${busRoute}
+Drop-off Location: ${dropoffLocation}
+Registration Date/Time: ${registrationDateTime}
+
+Please review the user account in the admin dashboard if needed.`,
+      accountType,
+      staffId,
+      division,
+      busRoute,
+      dropoffLocation,
+    });
+
+    return true;
+  } catch (emailError) {
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      action: "admin_registration_email_failed",
+      details: {
+        email,
+        account_type: accountType,
+        error: emailError.message,
+      },
+    });
+
+    return false;
+  }
+}
+
 /**
  * Registers a staff user without requiring a pre-existing employee_registry entry.
  *
@@ -12,6 +95,7 @@ import { sendPowerAutomateEmail } from "../../server/_utils/powerAutomateEmail.j
  * - Email must not already exist in profiles.
  * - Password is handled by Supabase Auth.
  * - WhatsApp group invite email is sent after successful registration if configured.
+ * - Admin notification email is sent after successful registration if configured.
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -141,6 +225,7 @@ export default async function handler(req, res) {
     }
 
     let whatsappEmailSent = false;
+    let adminNotificationSent = false;
     const whatsappGroupLink = process.env.WHATSAPP_GROUP_LINK;
 
     if (whatsappGroupLink) {
@@ -185,6 +270,19 @@ You can now log in to the Ministry of Finance Transport Booking Portal to book y
       }
     }
 
+    adminNotificationSent = await sendAdminRegistrationNotification({
+      supabase,
+      userId,
+      fullName: cleanedFullName,
+      email: cleanedEmail,
+      phone: cleanedPhone,
+      accountType: "Staff",
+      staffId: cleanedStaffId,
+      division: cleanedDivision,
+      busRoute: cleanedBusRoute,
+      dropoffLocation: cleanedDropoffLocation,
+    });
+
     await supabase.from("audit_logs").insert({
       user_id: userId,
       action: "staff_registered",
@@ -195,6 +293,7 @@ You can now log in to the Ministry of Finance Transport Booking Portal to book y
         bus_route: cleanedBusRoute,
         registration_mode: "self_service_without_employee_registry",
         whatsapp_email_sent: whatsappEmailSent,
+        admin_notification_sent: adminNotificationSent,
       },
     });
 
