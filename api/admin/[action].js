@@ -2,6 +2,16 @@ import { requireAdmin } from "../../server/_utils/requireAdmin.js";
 import { getAccraDateTimeParts } from "../../server/_utils/bookingRules.js";
 import { generateGhanaPublicHolidays } from "../../server/_utils/ghanaHolidays.js";
 
+function setNoStoreHeaders(res) {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+}
+
 function getAction(req) {
   const queryAction = req.query?.action;
 
@@ -1247,6 +1257,7 @@ const adminHandlers = {
 };
 
 export default async function handler(req, res) {
+  setNoStoreHeaders(res);
   try {
     const action = getAction(req);
     const selectedHandler = adminHandlers[action];

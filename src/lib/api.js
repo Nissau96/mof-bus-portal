@@ -33,7 +33,10 @@ export async function apiFetch(path, options = {}) {
   } = await supabase.auth.getSession();
 
   const headers = {
+    Accept: "application/json",
     "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
     ...(options.headers || {}),
   };
 
@@ -44,6 +47,7 @@ export async function apiFetch(path, options = {}) {
   const response = await fetch(path, {
     ...options,
     headers,
+    cache: "no-store",
   });
 
   const data = await readResponseBody(response);
