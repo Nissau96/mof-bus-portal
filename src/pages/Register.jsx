@@ -17,6 +17,9 @@ import { apiFetch } from "../lib/api";
  * Staff registration includes Staff ID and Ministry email.
  * Intern/NSP registration uses email only.
  *
+ * The form collects first name and last name separately,
+ * then sends the concatenated value to the backend as fullName.
+ *
  * The page is mobile-first and expands cleanly on tablets/desktops.
  */
 export default function Register() {
@@ -28,7 +31,8 @@ export default function Register() {
 
   const [form, setForm] = useState({
     staffId: "",
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     division: "",
@@ -46,6 +50,12 @@ export default function Register() {
     }));
   }
 
+  function buildFullName() {
+    return `${form.firstName.trim()} ${form.lastName.trim()}`
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   function validateForm() {
     if (activeTab === "staff" && !form.staffId.trim()) {
       showToast({
@@ -56,11 +66,20 @@ export default function Register() {
       return false;
     }
 
-    if (!form.fullName.trim()) {
+    if (!form.firstName.trim()) {
       showToast({
         type: "warning",
-        title: "Full name required",
-        message: "Enter your full name before creating your account.",
+        title: "First name required",
+        message: "Enter your first name before creating your account.",
+      });
+      return false;
+    }
+
+    if (!form.lastName.trim()) {
+      showToast({
+        type: "warning",
+        title: "Last name required",
+        message: "Enter your last name before creating your account.",
       });
       return false;
     }
@@ -150,9 +169,11 @@ export default function Register() {
     try {
       setIsSubmitting(true);
 
+      const fullName = buildFullName();
+
       const payload = {
         staffId: form.staffId.trim(),
-        fullName: form.fullName.trim(),
+        fullName,
         email: form.email.trim(),
         phone: form.phone.trim(),
         division: form.division,
@@ -204,19 +225,29 @@ export default function Register() {
           <FormInput
             id="staffId"
             label="Staff ID"
-            placeholder="e.g. MOF-12345"
+            placeholder="e.g. 935122"
             value={form.staffId}
             onChange={(value) => updateField("staffId", value)}
           />
         )}
 
-        <FormInput
-          id="fullName"
-          label="Full Name"
-          placeholder="As it appears on your ID"
-          value={form.fullName}
-          onChange={(value) => updateField("fullName", value)}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormInput
+            id="firstName"
+            label="First Name"
+            placeholder="Enter your first name"
+            value={form.firstName}
+            onChange={(value) => updateField("firstName", value)}
+          />
+
+          <FormInput
+            id="lastName"
+            label="Last Name"
+            placeholder="Enter your last name"
+            value={form.lastName}
+            onChange={(value) => updateField("lastName", value)}
+          />
+        </div>
 
         <FormInput
           id="email"
@@ -298,7 +329,7 @@ export default function Register() {
           className="btn min-h-12 w-full rounded-xl border-0 bg-mof-primary text-white hover:bg-mof-primary-container disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? "Creating Account..." : "Create Account"}
-          {!isSubmitting && <ArrowRight size={18} />}
+          {!isSubmitting && <ArrowRight size={18} aria-hidden="true" />}
         </button>
       </form>
 
