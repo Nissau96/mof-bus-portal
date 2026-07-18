@@ -22,6 +22,28 @@ import { apiFetch } from "../lib/api";
  *
  * The page is mobile-first and expands cleanly on tablets/desktops.
  */
+
+function RegistrationLoadingOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+          <span className="loading loading-spinner loading-md text-mof-primary" />
+        </div>
+
+        <h2 className="mt-5 text-xl font-black text-slate-950">
+          Creating your account
+        </h2>
+
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+          Please wait while we register your account and prepare your bus portal
+          profile.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Register() {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -213,132 +235,138 @@ export default function Register() {
   }
 
   return (
-    <AuthShell
-      title="Create Account"
-      subtitle="Register for the MOF Staff Bus service"
-      wide
-    >
-      <AuthTabs activeTab={activeTab} onChange={setActiveTab} />
+    <>
+      {isSubmitting && <RegistrationLoadingOverlay />}
+      <AuthShell
+        title="Create Account"
+        subtitle="Register for the MOF Staff Bus service"
+        wide
+      >
+        <AuthTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <form onSubmit={handleRegister} className="space-y-4 p-5 sm:p-6">
-        {activeTab === "staff" && (
+        <form onSubmit={handleRegister} className="space-y-4 p-5 sm:p-6">
+          {activeTab === "staff" && (
+            <FormInput
+              id="staffId"
+              label="Staff ID"
+              placeholder="e.g. 935122"
+              value={form.staffId}
+              onChange={(value) => updateField("staffId", value)}
+            />
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormInput
+              id="firstName"
+              label="First Name"
+              placeholder="Enter your first name"
+              value={form.firstName}
+              onChange={(value) => updateField("firstName", value)}
+            />
+
+            <FormInput
+              id="lastName"
+              label="Last Name"
+              placeholder="Enter your last name"
+              value={form.lastName}
+              onChange={(value) => updateField("lastName", value)}
+            />
+          </div>
+
           <FormInput
-            id="staffId"
-            label="Staff ID"
-            placeholder="e.g. 935122"
-            value={form.staffId}
-            onChange={(value) => updateField("staffId", value)}
-          />
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormInput
-            id="firstName"
-            label="First Name"
-            placeholder="Enter your first name"
-            value={form.firstName}
-            onChange={(value) => updateField("firstName", value)}
-          />
-
-          <FormInput
-            id="lastName"
-            label="Last Name"
-            placeholder="Enter your last name"
-            value={form.lastName}
-            onChange={(value) => updateField("lastName", value)}
-          />
-        </div>
-
-        <FormInput
-          id="email"
-          label={activeTab === "staff" ? "Ministry Email" : "Email Address"}
-          type="email"
-          placeholder={
-            activeTab === "staff" ? "name@mofep.gov.gh" : "name@example.com"
-          }
-          value={form.email}
-          onChange={(value) => updateField("email", value)}
-        />
-
-        <FormInput
-          id="phone"
-          label="Phone Number"
-          placeholder="+233 XX XXX XXXX"
-          value={form.phone}
-          onChange={(value) => updateField("phone", value)}
-        />
-
-        <DivisionSelect
-          value={form.division}
-          onChange={(value) => updateField("division", value)}
-        />
-
-        <BusRouteSelect
-          value={form.busRoute}
-          onChange={(value) => updateField("busRoute", value)}
-        />
-
-        <RouteSelect
-          value={form.dropoffLocation}
-          onChange={(value) => updateField("dropoffLocation", value)}
-        />
-
-        <FormInput
-          id="password"
-          label="Password"
-          type="password"
-          placeholder="Minimum 8 characters"
-          value={form.password}
-          onChange={(value) => updateField("password", value)}
-        />
-
-        <FormInput
-          id="confirmPassword"
-          label="Confirm Password"
-          type="password"
-          placeholder="Confirm your password"
-          value={form.confirmPassword}
-          onChange={(value) => updateField("confirmPassword", value)}
-        />
-
-        <label className="flex items-start gap-3 text-sm leading-6 text-mof-text">
-          <input
-            type="checkbox"
-            checked={form.acceptedTerms}
-            onChange={(event) =>
-              updateField("acceptedTerms", event.target.checked)
+            id="email"
+            label={activeTab === "staff" ? "Ministry Email" : "Email Address"}
+            type="email"
+            placeholder={
+              activeTab === "staff" ? "name@mofep.gov.gh" : "name@example.com"
             }
-            className="checkbox checkbox-sm mt-1 border-mof-border"
+            value={form.email}
+            onChange={(value) => updateField("email", value)}
           />
 
-          <span>
-            I agree to the{" "}
-            <Link to="/terms" className="font-semibold text-mof-primary">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link to="/privacy" className="font-semibold text-mof-primary">
-              Privacy Policy
-            </Link>
-          </span>
-        </label>
+          <FormInput
+            id="phone"
+            label="Phone Number"
+            placeholder="+233 XX XXX XXXX"
+            value={form.phone}
+            onChange={(value) => updateField("phone", value)}
+          />
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn min-h-12 w-full rounded-xl border-0 bg-mof-primary text-white hover:bg-mof-primary-container disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Creating Account..." : "Create Account"}
-          {!isSubmitting && <ArrowRight size={18} aria-hidden="true" />}
-        </button>
-      </form>
+          <DivisionSelect
+            value={form.division}
+            onChange={(value) => updateField("division", value)}
+          />
 
-      <div className="rounded-b-2xl border-t border-mof-border bg-mof-surface-muted p-5 text-center text-sm">
-        Already have an account?{" "}
-        <Link to="/" className="font-semibold text-mof-primary hover:underline">
-          Log in
-        </Link>
-      </div>
-    </AuthShell>
+          <BusRouteSelect
+            value={form.busRoute}
+            onChange={(value) => updateField("busRoute", value)}
+          />
+
+          <RouteSelect
+            value={form.dropoffLocation}
+            onChange={(value) => updateField("dropoffLocation", value)}
+          />
+
+          <FormInput
+            id="password"
+            label="Password"
+            type="password"
+            placeholder="Minimum 8 characters"
+            value={form.password}
+            onChange={(value) => updateField("password", value)}
+          />
+
+          <FormInput
+            id="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            placeholder="Confirm your password"
+            value={form.confirmPassword}
+            onChange={(value) => updateField("confirmPassword", value)}
+          />
+
+          <label className="flex items-start gap-3 text-sm leading-6 text-mof-text">
+            <input
+              type="checkbox"
+              checked={form.acceptedTerms}
+              onChange={(event) =>
+                updateField("acceptedTerms", event.target.checked)
+              }
+              className="checkbox checkbox-sm mt-1 border-mof-border"
+            />
+
+            <span>
+              I agree to the{" "}
+              <Link to="/terms" className="font-semibold text-mof-primary">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link to="/privacy" className="font-semibold text-mof-primary">
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn min-h-12 w-full rounded-xl border-0 bg-mof-primary text-white hover:bg-mof-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting && (
+              <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+            )}
+            {isSubmitting ? "Creating Account..." : "Create Account"}
+            {!isSubmitting && <ArrowRight size={18} aria-hidden="true" />}
+          </button>
+        </form>
+
+        <div className="rounded-b-2xl border-t border-mof-border bg-mof-surface-muted p-5 text-center text-sm">
+          Already have an account?{" "}
+          <Link to="/" className="font-semibold text-mof-primary hover:underline">
+            Log in
+          </Link>
+        </div>
+      </AuthShell>
+    </>
   );
 }
