@@ -22,6 +22,7 @@ import { clearCachedProfile, getCachedProfile } from "../../lib/profileCache";
 import { supabase } from "../../lib/supabaseClient";
 
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60000;
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 const userNavItems = [
   {
@@ -99,8 +100,10 @@ function MenuLink({ item, isDark, onClick }) {
 /**
  * DashboardShell provides a shared dashboard layout.
  *
- * It also sends a user presence heartbeat every 60 seconds so admins
+ * It sends a user presence heartbeat every 60 seconds so admins
  * can see active/recent users.
+ *
+ * It also automatically logs users out after 5 minutes of inactivity.
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
@@ -127,27 +130,51 @@ export default function DashboardShell({ children }) {
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
   const sendPresenceHeartbeat = useCallback(async () => {
-  if (!cachedProfileId) {
-    return;
-  }
+    if (!cachedProfileId) {
+      return;
+    }
 
-  try {
-    await supabase.from("user_presence").upsert(
-      {
-        user_id: cachedProfileId,
-        last_seen_at: new Date().toISOString(),
-        current_page: location.pathname,
-        user_agent: window.navigator.userAgent,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: "user_id",
-      }
-    );
-  } catch {
-    // Presence should never interrupt the user's session.
-  }
-}, [cachedProfileId, location.pathname]);
+    try {
+      await supabase.from("user_presence").upsert(
+        {
+          user_id: cachedProfileId,
+          last_seen_at: new Date().toISOString(),
+          current_page: location.pathname,
+          user_agent: window.navigator.userAgent,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
+    } catch {
+      // Presence should never interrupt the user's session.
+    }
+  }, [cachedProfileId, location.pathname]);
+
+  const logoutInactiveUser = useCallback(async () => {
+    try {
+      setIsLoggingOut(true);
+      setIsMenuOpen(false);
+
+      clearCachedProfile();
+
+      await signOutUser();
+
+      showToast({
+        type: "warning",
+        title: "Session expired",
+        message: "You were logged out after 5 minutes of inactivity.",
+      });
+
+      navigate("/", { replace: true });
+    } catch {
+      clearCachedProfile();
+      navigate("/", { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [navigate, showToast]);
 
   useEffect(() => {
     const initialTimeoutId = window.setTimeout(() => {
@@ -163,6 +190,43 @@ export default function DashboardShell({ children }) {
       window.clearInterval(intervalId);
     };
   }, [sendPresenceHeartbeat]);
+
+  useEffect(() => {
+    let inactivityTimeoutId;
+
+    function resetInactivityTimer() {
+      window.clearTimeout(inactivityTimeoutId);
+
+      inactivityTimeoutId = window.setTimeout(() => {
+        logoutInactiveUser();
+      }, INACTIVITY_TIMEOUT_MS);
+    }
+
+    const activityEvents = [
+      "click",
+      "keydown",
+      "mousemove",
+      "scroll",
+      "touchstart",
+      "wheel",
+    ];
+
+    resetInactivityTimer();
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetInactivityTimer, {
+        passive: true,
+      });
+    });
+
+    return () => {
+      window.clearTimeout(inactivityTimeoutId);
+
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      });
+    };
+  }, [logoutInactiveUser]);
 
   async function handleLogout() {
     try {
