@@ -100,10 +100,8 @@ function MenuLink({ item, isDark, onClick }) {
 /**
  * DashboardShell provides a shared dashboard layout.
  *
- * It sends a user presence heartbeat every 60 seconds so admins
- * can see active/recent users.
- *
- * It also automatically logs users out after 5 minutes of inactivity.
+ * It marks the user as active while logged in, sends a heartbeat every
+ * 60 seconds, and marks the user inactive before manual or automatic logout.
  */
 export default function DashboardShell({ children }) {
   const { isDark, theme, toggleTheme } = useTheme();
@@ -129,33 +127,43 @@ export default function DashboardShell({ children }) {
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
-  const sendPresenceHeartbeat = useCallback(async () => {
-    if (!cachedProfileId) {
-      return;
-    }
+  const updatePresenceStatus = useCallback(
+    async (status) => {
+      if (!cachedProfileId) {
+        return;
+      }
 
-    try {
-      await supabase.from("user_presence").upsert(
-        {
-          user_id: cachedProfileId,
-          last_seen_at: new Date().toISOString(),
-          current_page: location.pathname,
-          user_agent: window.navigator.userAgent,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
-    } catch {
-      // Presence should never interrupt the user's session.
-    }
-  }, [cachedProfileId, location.pathname]);
+      try {
+        await supabase.from("user_presence").upsert(
+          {
+            user_id: cachedProfileId,
+            last_seen_at: new Date().toISOString(),
+            current_page: location.pathname,
+            user_agent: window.navigator.userAgent,
+            status,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id",
+          }
+        );
+      } catch {
+        // Presence updates should never interrupt the user's session.
+      }
+    },
+    [cachedProfileId, location.pathname]
+  );
+
+  const sendPresenceHeartbeat = useCallback(async () => {
+    await updatePresenceStatus("active");
+  }, [updatePresenceStatus]);
 
   const logoutInactiveUser = useCallback(async () => {
     try {
       setIsLoggingOut(true);
       setIsMenuOpen(false);
+
+      await updatePresenceStatus("inactive");
 
       clearCachedProfile();
 
@@ -174,7 +182,7 @@ export default function DashboardShell({ children }) {
     } finally {
       setIsLoggingOut(false);
     }
-  }, [navigate, showToast]);
+  }, [navigate, showToast, updatePresenceStatus]);
 
   useEffect(() => {
     const initialTimeoutId = window.setTimeout(() => {
@@ -232,6 +240,8 @@ export default function DashboardShell({ children }) {
     try {
       setIsLoggingOut(true);
       setIsMenuOpen(false);
+
+      await updatePresenceStatus("inactive");
 
       clearCachedProfile();
 
