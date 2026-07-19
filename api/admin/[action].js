@@ -1237,8 +1237,42 @@ async function handleUsers(req, res, auth) {
     });
   }
 
+  const userIds = (users || []).map((user) => user.id).filter(Boolean);
+
+  let presenceByUserId = {};
+
+  if (userIds.length > 0) {
+    const { data: presenceRows, error: presenceError } = await supabase
+      .from("user_presence")
+      .select("user_id, status, last_seen_at, current_page, updated_at")
+      .in("user_id", userIds);
+
+    if (presenceError) {
+      return res.status(500).json({
+        message: presenceError.message,
+      });
+    }
+
+    presenceByUserId = (presenceRows || []).reduce((accumulator, presence) => {
+      accumulator[presence.user_id] = presence;
+      return accumulator;
+    }, {});
+  }
+
+  const usersWithPresence = (users || []).map((user) => {
+    const presence = presenceByUserId[user.id] || null;
+
+    return {
+      ...user,
+      presence_status: presence?.status || "inactive",
+      last_seen_at: presence?.last_seen_at || null,
+      current_page: presence?.current_page || null,
+      presence_updated_at: presence?.updated_at || null,
+    };
+  });
+
   return res.status(200).json({
-    users: users || [],
+    users: usersWithPresence,
   });
 }
 

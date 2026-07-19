@@ -7,6 +7,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   IdCard,
   MapPinned,
   Phone,
@@ -57,6 +58,22 @@ function getRoleClass(role, isDark) {
     : "bg-emerald-50 text-mof-primary";
 }
 
+function getPresenceLabel(status) {
+  return status === "active" ? "Active" : "Inactive";
+}
+
+function getPresenceClass(status, isDark) {
+  if (status === "active") {
+    return isDark
+      ? "bg-emerald-500/10 text-emerald-200"
+      : "bg-emerald-50 text-emerald-700";
+  }
+
+  return isDark
+    ? "bg-slate-500/10 text-slate-300"
+    : "bg-slate-100 text-slate-600";
+}
+
 function formatCreatedDate(dateValue) {
   if (!dateValue) {
     return "-";
@@ -71,12 +88,29 @@ function formatCreatedDate(dateValue) {
   }).format(date);
 }
 
+function formatLastSeen(dateValue) {
+  if (!dateValue) {
+    return "Never";
+  }
+
+  const date = new Date(dateValue);
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function InfoPill({ label, value, icon: Icon, isDark }) {
   return (
     <div className={`rounded-2xl p-4 ${isDark ? "bg-white/5" : "bg-slate-50"}`}>
       <div className="flex items-start gap-3">
         <Icon
           size={18}
+          aria-hidden="true"
           className={isDark ? "text-emerald-200" : "text-mof-primary"}
         />
 
@@ -120,7 +154,7 @@ function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
                 : "bg-emerald-50 text-mof-primary"
             }`}
           >
-            <UserRound size={24} />
+            <UserRound size={24} aria-hidden="true" />
           </div>
 
           <div>
@@ -160,19 +194,24 @@ function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
             {getRoleLabel(user.role)}
           </span>
 
-          <span
-            className={`inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
-              user.is_disabled
-                ? isDark
-                  ? "bg-red-500/10 text-red-200"
-                  : "bg-red-50 text-red-700"
-                : isDark
-                  ? "bg-emerald-500/10 text-emerald-200"
-                  : "bg-emerald-50 text-mof-primary"
-            }`}
-          >
-            {user.is_disabled ? "Disabled" : "Active"}
-          </span>
+          {user.is_disabled ? (
+            <span
+              className={`inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                isDark ? "bg-red-500/10 text-red-200" : "bg-red-50 text-red-700"
+              }`}
+            >
+              Disabled
+            </span>
+          ) : (
+            <span
+              className={`inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${getPresenceClass(
+                user.presence_status,
+                isDark
+              )}`}
+            >
+              {getPresenceLabel(user.presence_status)}
+            </span>
+          )}
 
           <button
             type="button"
@@ -225,6 +264,20 @@ function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
           label="Drop-off"
           value={user.dropoff_location}
           icon={MapPinned}
+          isDark={isDark}
+        />
+
+        <InfoPill
+          label="Presence"
+          value={getPresenceLabel(user.presence_status)}
+          icon={ShieldCheck}
+          isDark={isDark}
+        />
+
+        <InfoPill
+          label="Last Seen"
+          value={formatLastSeen(user.last_seen_at)}
+          icon={Clock3}
           isDark={isDark}
         />
 
@@ -282,7 +335,7 @@ function PaginationControls({
                 : "border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} aria-hidden="true" />
             Previous
           </button>
 
@@ -316,7 +369,7 @@ function PaginationControls({
             }`}
           >
             Next
-            <ChevronRight size={16} />
+            <ChevronRight size={16} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -324,11 +377,6 @@ function PaginationControls({
   );
 }
 
-/**
- * Admin Users page.
- *
- * Allows admin users to view all registered users and enable/disable accounts.
- */
 export default function AdminUsers() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
@@ -365,8 +413,13 @@ export default function AdminUsers() {
       loadUsers();
     }, 0);
 
+    const intervalId = window.setInterval(() => {
+      loadUsers();
+    }, 60000);
+
     return () => {
       window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
     };
   }, [loadUsers]);
 
@@ -400,6 +453,7 @@ export default function AdminUsers() {
           user.bus_route,
           user.dropoff_location,
           user.role,
+          user.presence_status,
         ]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
@@ -408,7 +462,12 @@ export default function AdminUsers() {
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && !user.is_disabled) ||
+        (statusFilter === "active" &&
+          !user.is_disabled &&
+          user.presence_status === "active") ||
+        (statusFilter === "inactive" &&
+          !user.is_disabled &&
+          user.presence_status !== "active") ||
         (statusFilter === "disabled" && user.is_disabled);
 
       return matchesSearch && matchesRole && matchesStatus;
@@ -446,7 +505,14 @@ export default function AdminUsers() {
     });
   }
 
-  const activeUsers = users.filter((user) => !user.is_disabled).length;
+  const onlineUsers = users.filter(
+    (user) => !user.is_disabled && user.presence_status === "active"
+  ).length;
+
+  const inactiveUsers = users.filter(
+    (user) => !user.is_disabled && user.presence_status !== "active"
+  ).length;
+
   const disabledUsers = users.filter((user) => user.is_disabled).length;
 
   async function handleToggleUserStatus(user) {
@@ -475,7 +541,15 @@ export default function AdminUsers() {
 
       setUsers((currentUsers) =>
         currentUsers.map((currentUser) =>
-          currentUser.id === data.user.id ? data.user : currentUser
+          currentUser.id === data.user.id
+            ? {
+                ...currentUser,
+                ...data.user,
+                presence_status: nextDisabledStatus
+                  ? "inactive"
+                  : currentUser.presence_status || "inactive",
+              }
+            : currentUser
         )
       );
 
@@ -510,7 +584,7 @@ export default function AdminUsers() {
               : "text-slate-600 hover:text-mof-primary"
           }`}
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={17} aria-hidden="true" />
           Back to admin dashboard
         </Link>
       </div>
@@ -545,8 +619,8 @@ export default function AdminUsers() {
                 isDark ? "text-white" : "text-slate-700"
               }`}
             >
-              View registered staff, interns, NSP users, assigned routes, and
-              account status.
+              View registered staff, interns, NSP users, assigned routes, login
+              presence, and account access status.
             </p>
           </div>
 
@@ -556,7 +630,7 @@ export default function AdminUsers() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <UsersRound size={22} />
+              <UsersRound size={22} aria-hidden="true" />
 
               <div>
                 <p className="text-xs font-black uppercase tracking-wide">
@@ -570,10 +644,11 @@ export default function AdminUsers() {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Total Users", users.length, UsersRound],
-          ["Active Users", activeUsers, ShieldCheck],
+          ["Active Users", onlineUsers, ShieldCheck],
+          ["Inactive Users", inactiveUsers, UserRound],
           ["Disabled Users", disabledUsers, BadgeCheck],
         ].map(([label, value, Icon]) => (
           <div
@@ -592,7 +667,7 @@ export default function AdminUsers() {
                     : "bg-emerald-50 text-mof-primary"
                 }`}
               >
-                <Icon size={22} />
+                <Icon size={22} aria-hidden="true" />
               </div>
 
               <div>
@@ -632,7 +707,7 @@ export default function AdminUsers() {
                 : "border-slate-200 bg-slate-50 text-slate-600"
             }`}
           >
-            <Search size={17} />
+            <Search size={17} aria-hidden="true" />
 
             <input
               type="search"
@@ -673,6 +748,7 @@ export default function AdminUsers() {
             {[
               ["all", "All Status"],
               ["active", "Active"],
+              ["inactive", "Inactive"],
               ["disabled", "Disabled"],
             ].map(([value, label]) => (
               <button
