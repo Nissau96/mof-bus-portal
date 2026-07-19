@@ -80,20 +80,46 @@ function MenuLink({ item, isDark, onClick }) {
       end={shouldUseExactMatch}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
-          isActive
-            ? isDark
-              ? "bg-white text-slate-950"
-              : "bg-mof-primary text-white"
-            : isDark
-              ? "text-slate-300 hover:bg-white/10 hover:text-white"
-              : "text-slate-600 hover:bg-emerald-50 hover:text-mof-primary"
+        `flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${isActive
+          ? isDark
+            ? "bg-white text-slate-950"
+            : "bg-mof-primary text-white"
+          : isDark
+            ? "text-slate-300 hover:bg-white/10 hover:text-white"
+            : "text-slate-600 hover:bg-emerald-50 hover:text-mof-primary"
         }`
       }
     >
       <Icon size={17} aria-hidden="true" />
       <span>{item.label}</span>
     </NavLink>
+  );
+}
+
+function LogoutLoadingOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
+      <div
+        role="status"
+        aria-live="polite"
+        className="w-full max-w-sm rounded-3xl border border-white/10 bg-white p-6 text-center shadow-2xl"
+      >
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+          <span
+            className="loading loading-spinner loading-md text-mof-primary"
+            aria-hidden="true"
+          />
+        </div>
+
+        <h2 className="mt-5 text-xl font-black text-slate-950">
+          Signing you out
+        </h2>
+
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+          Please wait while we securely end your session.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -264,129 +290,134 @@ export default function DashboardShell({ children }) {
   }
 
   return (
-    <main className={`min-h-screen transition-colors ${pageClass}`}>
-      <header
-        className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950">
-              <BusFront size={22} aria-hidden="true" />
-            </div>
-
-            <div>
-              <p className="text-sm font-bold leading-none">MoF Bus Portal</p>
-              <p className={`mt-1 hidden text-xs sm:block ${mutedTextClass}`}>
-                Staff transport workspace
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                isDark
-                  ? "border-white/10 text-slate-300 hover:bg-white/10"
-                  : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {isDark ? (
-                <Sun size={20} aria-hidden="true" />
-              ) : (
-                <Moon size={20} aria-hidden="true" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${
-                isDark
-                  ? "border-white/10 text-slate-300 hover:bg-white/10"
-                  : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
-              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {isMenuOpen ? (
-                <X size={22} aria-hidden="true" />
-              ) : (
-                <Menu size={22} aria-hidden="true" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex ${
-                isDark
-                  ? "border-white/10 text-slate-300 hover:bg-white/10"
-                  : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
-            >
-              <LogOut size={17} aria-hidden="true" />
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </button>
-          </div>
-        </div>
-
-        <div
-          className={`hidden border-t lg:block ${
-            isDark ? "border-white/10" : "border-slate-200"
-          }`}
+    <>
+      {isLoggingOut && <LogoutLoadingOverlay />}
+      <main className={`min-h-screen transition-colors ${pageClass}`}>
+        <header
+          className={`sticky top-0 z-20 border-b backdrop-blur ${topNavClass}`}
         >
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-            <nav className="flex items-center gap-2 overflow-x-auto pb-1">
-              {visibleNavItems.map((item) => (
-                <MenuLink key={item.href} item={item} isDark={isDark} />
-              ))}
-            </nav>
-          </div>
-        </div>
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <Link to="/dashboard" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-slate-950">
+                <BusFront size={22} aria-hidden="true" />
+              </div>
 
-        {isMenuOpen && (
-          <div
-            className={`border-t px-4 py-4 lg:hidden ${
-              isDark
-                ? "border-white/10 bg-slate-950"
-                : "border-slate-200 bg-[#f7fbf3]"
-            }`}
-          >
-            <div className="space-y-1">
-              {visibleNavItems.map((item) => (
-                <MenuLink
-                  key={item.href}
-                  item={item}
-                  isDark={isDark}
-                  onClick={closeMenu}
-                />
-              ))}
+              <div>
+                <p className="text-sm font-bold leading-none">MoF Bus Portal</p>
+                <p className={`mt-1 hidden text-xs sm:block ${mutedTextClass}`}>
+                  Staff transport workspace
+                </p>
+              </div>
+            </Link>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition ${isDark
+                    ? "border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border-slate-200 text-slate-700 hover:bg-white"
+                  }`}
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              >
+                {isDark ? (
+                  <Sun size={20} aria-hidden="true" />
+                ) : (
+                  <Moon size={20} aria-hidden="true" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border lg:hidden ${isDark
+                    ? "border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border-slate-200 text-slate-700 hover:bg-white"
+                  }`}
+                aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {isMenuOpen ? (
+                  <X size={22} aria-hidden="true" />
+                ) : (
+                  <Menu size={22} aria-hidden="true" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className={`hidden h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex ${isDark
+                    ? "border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border-slate-200 text-slate-700 hover:bg-white"
+                  }`}
+              >
+                {isLoggingOut ? (
+                  <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+                ) : (
+                  <LogOut size={17} aria-hidden="true" />
+                )}
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className={`mt-5 flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                isDark
-                  ? "border-white/10 text-slate-300 hover:bg-white/10"
-                  : "border-slate-200 text-slate-700 hover:bg-white"
-              }`}
-            >
-              <LogOut size={17} aria-hidden="true" />
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </button>
           </div>
-        )}
-      </header>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {children}
-      </section>
-    </main>
+          <div
+            className={`hidden border-t lg:block ${isDark ? "border-white/10" : "border-slate-200"
+              }`}
+          >
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+              <nav className="flex items-center gap-2 overflow-x-auto pb-1">
+                {visibleNavItems.map((item) => (
+                  <MenuLink key={item.href} item={item} isDark={isDark} />
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {isMenuOpen && (
+            <div
+              className={`border-t px-4 py-4 lg:hidden ${isDark
+                  ? "border-white/10 bg-slate-950"
+                  : "border-slate-200 bg-[#f7fbf3]"
+                }`}
+            >
+              <div className="space-y-1">
+                {visibleNavItems.map((item) => (
+                  <MenuLink
+                    key={item.href}
+                    item={item}
+                    isDark={isDark}
+                    onClick={closeMenu}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className={`mt-5 flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
+                    ? "border-white/10 text-slate-300 hover:bg-white/10"
+                    : "border-slate-200 text-slate-700 hover:bg-white"
+                  }`}
+              >
+                {isLoggingOut ? (
+  <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+) : (
+  <LogOut size={17} aria-hidden="true" />
+)}
+{isLoggingOut ? "Logging out..." : "Logout"}
+              </button>
+            </div>
+          )}
+        </header>
+
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          {children}
+        </section>
+      </main>
+    </>
   );
 }
