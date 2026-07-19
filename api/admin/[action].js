@@ -1259,12 +1259,23 @@ async function handleUsers(req, res, auth) {
     }, {});
   }
 
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
   const usersWithPresence = (users || []).map((user) => {
     const presence = presenceByUserId[user.id] || null;
+    const lastSeenTime = presence?.last_seen_at
+      ? new Date(presence.last_seen_at).getTime()
+      : 0;
+
+    const isRecentlySeen = lastSeenTime >= fiveMinutesAgo;
+
+    const effectivePresenceStatus =
+      presence?.status === "active" && isRecentlySeen ? "active" : "inactive";
 
     return {
       ...user,
-      presence_status: presence?.status || "inactive",
+      presence_status: effectivePresenceStatus,
+      raw_presence_status: presence?.status || "inactive",
       last_seen_at: presence?.last_seen_at || null,
       current_page: presence?.current_page || null,
       presence_updated_at: presence?.updated_at || null,
