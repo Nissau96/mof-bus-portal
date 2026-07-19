@@ -1217,6 +1217,103 @@ async function handleUpdateUserStatus(req, res, auth) {
   });
 }
 
+async function handleDeleteUser(req, res, auth) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method not allowed." });
+  }
+
+  const { user: adminUser, supabase } = auth;
+  const { userId } = req.body || {};
+
+  if (!userId) {
+    return res.status(400).json({
+      message: "User ID is required.",
+    });
+  }
+
+  if (userId === adminUser.id) {
+    return res.status(400).json({
+      message: "You cannot delete your own admin account.",
+    });
+  }
+
+  const { data: targetUser, error: targetUserError } = await supabase
+    .from("profiles")
+    .select(
+      "id, full_name, email, role, staff_id, phone, division, bus_route, dropoff_location, is_disabled, deleted_at"
+    )
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (targetUserError) {
+    return res.status(500).json({
+      message: targetUserError.message,
+    });
+  }
+
+  if (!targetUser || targetUser.deleted_at) {
+    return res.status(404).json({
+      message: "User profile was not found.",
+    });
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { data: deletedProfile, error: deleteProfileError } = await supabase
+    .from("profiles")
+    .update({
+      is_disabled: true,
+      deleted_at: deletedAt,
+      deleted_by: adminUser.id,
+    })
+    .eq("id", userId)
+    .select("id, full_name, email, role, staff_id, is_disabled, deleted_at")
+    .single();
+
+  if (deleteProfileError) {
+    return res.status(500).json({
+      message: deleteProfileError.message,
+    });
+  }
+
+  await supabase.from("user_presence").delete().eq("user_id", userId);
+
+  if (targetUser.staff_id) {
+    await supabase
+      .from("privileged_users")
+      .delete()
+      .eq("staff_id", targetUser.staff_id);
+  }
+
+  const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+
+  await supabase.from("audit_logs").insert({
+    user_id: adminUser.id,
+    action: "admin_deleted_user",
+    details: {
+      target_user_id: targetUser.id,
+      target_full_name: targetUser.full_name,
+      target_email: targetUser.email,
+      target_role: targetUser.role,
+      target_staff_id: targetUser.staff_id,
+      target_division: targetUser.division,
+      target_bus_route: targetUser.bus_route,
+      target_dropoff_location: targetUser.dropoff_location,
+      deleted_at: deletedAt,
+      auth_delete_successful: !authDeleteError,
+      auth_delete_error: authDeleteError?.message || null,
+    },
+  });
+
+  return res.status(200).json({
+    message: authDeleteError
+      ? "User was removed from the app, but the Supabase Auth account could not be deleted automatically."
+      : "User has been deleted successfully.",
+    deletedUser: deletedProfile,
+    authDeleteWarning: authDeleteError?.message || null,
+  });
+}
+
 async function handleUsers(req, res, auth) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed." });
@@ -1225,11 +1322,12 @@ async function handleUsers(req, res, auth) {
   const { supabase } = auth;
 
   const { data: users, error } = await supabase
-    .from("profiles")
-    .select(
-      "id, full_name, email, role, staff_id, phone, division, bus_route, dropoff_location, is_disabled, created_at"
-    )
-    .order("created_at", { ascending: false });
+  .from("profiles")
+  .select(
+    "id, full_name, email, role, staff_id, phone, division, bus_route, dropoff_location, is_disabled, created_at"
+  )
+  .is("deleted_at", null)
+  .order("created_at", { ascending: false });
 
   if (error) {
     return res.status(500).json({
@@ -1298,6 +1396,7 @@ const adminHandlers = {
   summary: handleSummary,
   tickets: handleTickets,
   "update-user-status": handleUpdateUserStatus,
+  "delete-user": handleDeleteUser,
   users: handleUsers,
 };
 

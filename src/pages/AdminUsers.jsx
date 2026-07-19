@@ -13,6 +13,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  Trash2,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -116,17 +117,15 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
 
         <div className="min-w-0">
           <p
-            className={`text-xs font-bold uppercase tracking-wider ${
-              isDark ? "text-slate-400" : "text-slate-500"
-            }`}
+            className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"
+              }`}
           >
             {label}
           </p>
 
           <p
-            className={`mt-1 wrap-break-word text-sm font-black ${
-              isDark ? "text-white" : "text-slate-950"
-            }`}
+            className={`mt-1 wrap-break-word text-sm font-black ${isDark ? "text-white" : "text-slate-950"
+              }`}
           >
             {value || "-"}
           </p>
@@ -136,48 +135,50 @@ function InfoPill({ label, value, icon: Icon, isDark }) {
   );
 }
 
-function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
+function UserCard({
+  user,
+  isDark,
+  onToggleStatus,
+  onDeleteUser,
+  isUpdating,
+  isDeleting,
+}) {
   return (
     <article
-      className={`rounded-3xl p-5 ${
-        isDark
-          ? "border border-white/10 bg-slate-900"
-          : "border border-slate-200 bg-white"
-      }`}
+      className={`rounded-3xl p-5 ${isDark
+        ? "border border-white/10 bg-slate-900"
+        : "border border-slate-200 bg-white"
+        }`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-4">
           <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
-              isDark
-                ? "bg-white/10 text-emerald-200"
-                : "bg-emerald-50 text-mof-primary"
-            }`}
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${isDark
+              ? "bg-white/10 text-emerald-200"
+              : "bg-emerald-50 text-mof-primary"
+              }`}
           >
             <UserRound size={24} aria-hidden="true" />
           </div>
 
           <div>
             <p
-              className={`text-xs font-black uppercase tracking-[0.22em] ${
-                isDark ? "text-emerald-200" : "text-mof-primary"
-              }`}
+              className={`text-xs font-black uppercase tracking-[0.22em] ${isDark ? "text-emerald-200" : "text-mof-primary"
+                }`}
             >
               Registered User
             </p>
 
             <h2
-              className={`mt-1 text-2xl font-black ${
-                isDark ? "text-white" : "text-slate-950"
-              }`}
+              className={`mt-1 text-2xl font-black ${isDark ? "text-white" : "text-slate-950"
+                }`}
             >
               {user.full_name || "Unnamed user"}
             </h2>
 
             <p
-              className={`mt-1 text-sm font-semibold ${
-                isDark ? "text-slate-400" : "text-slate-600"
-              }`}
+              className={`mt-1 text-sm font-semibold ${isDark ? "text-slate-400" : "text-slate-600"
+                }`}
             >
               {user.email}
             </p>
@@ -196,9 +197,8 @@ function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
 
           {user.is_disabled ? (
             <span
-              className={`inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
-                isDark ? "bg-red-500/10 text-red-200" : "bg-red-50 text-red-700"
-              }`}
+              className={`inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${isDark ? "bg-red-500/10 text-red-200" : "bg-red-50 text-red-700"
+                }`}
             >
               Disabled
             </span>
@@ -217,21 +217,37 @@ function UserCard({ user, isDark, onToggleStatus, isUpdating }) {
             type="button"
             disabled={isUpdating}
             onClick={() => onToggleStatus(user)}
-            className={`inline-flex min-h-9 items-center justify-center rounded-full px-4 text-xs font-black uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              user.is_disabled
-                ? isDark
-                  ? "bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
-                  : "bg-emerald-50 text-mof-primary hover:bg-emerald-100"
-                : isDark
-                  ? "bg-red-500/10 text-red-200 hover:bg-red-500/20"
-                  : "bg-red-50 text-red-700 hover:bg-red-100"
-            }`}
+            className={`inline-flex min-h-9 items-center justify-center rounded-full px-4 text-xs font-black uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${user.is_disabled
+              ? isDark
+                ? "bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                : "bg-emerald-50 text-mof-primary hover:bg-emerald-100"
+              : isDark
+                ? "bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                : "bg-red-50 text-red-700 hover:bg-red-100"
+              }`}
           >
             {isUpdating
               ? "Updating..."
               : user.is_disabled
                 ? "Reactivate"
                 : "Disable"}
+          </button>
+
+          <button
+            type="button"
+            disabled={isUpdating || isDeleting}
+            onClick={() => onDeleteUser(user)}
+            className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full px-4 text-xs font-black uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
+              ? "bg-red-600/20 text-red-200 hover:bg-red-600/30"
+              : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+          >
+            {isDeleting ? (
+              <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+            ) : (
+              <Trash2 size={14} aria-hidden="true" />
+            )}
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
@@ -309,17 +325,15 @@ function PaginationControls({
 
   return (
     <div
-      className={`mt-6 rounded-3xl p-4 ${
-        isDark
-          ? "border border-white/10 bg-slate-900"
-          : "border border-slate-200 bg-white"
-      }`}
+      className={`mt-6 rounded-3xl p-4 ${isDark
+        ? "border border-white/10 bg-slate-900"
+        : "border border-slate-200 bg-white"
+        }`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <p
-          className={`text-sm font-bold ${
-            isDark ? "text-slate-300" : "text-slate-600"
-          }`}
+          className={`text-sm font-bold ${isDark ? "text-slate-300" : "text-slate-600"
+            }`}
         >
           Showing {startItem} to {endItem} of {totalItems} users
         </p>
@@ -329,11 +343,10 @@ function PaginationControls({
             type="button"
             disabled={currentPage === 1}
             onClick={() => onPageChange(currentPage - 1)}
-            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-              isDark
-                ? "border-white/10 text-slate-300 hover:bg-white/10"
-                : "border-slate-200 text-slate-700 hover:bg-slate-50"
-            }`}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark
+              ? "border-white/10 text-slate-300 hover:bg-white/10"
+              : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
           >
             <ChevronLeft size={16} aria-hidden="true" />
             Previous
@@ -344,15 +357,14 @@ function PaginationControls({
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}
-              className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${
-                pageNumber === currentPage
-                  ? isDark
-                    ? "bg-white text-slate-950"
-                    : "bg-mof-primary text-white"
-                  : isDark
-                    ? "border border-white/10 text-slate-300 hover:bg-white/10"
-                    : "border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black transition ${pageNumber === currentPage
+                ? isDark
+                  ? "bg-white text-slate-950"
+                  : "bg-mof-primary text-white"
+                : isDark
+                  ? "border border-white/10 text-slate-300 hover:bg-white/10"
+                  : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                }`}
             >
               {pageNumber}
             </button>
@@ -362,11 +374,10 @@ function PaginationControls({
             type="button"
             disabled={currentPage === totalPages}
             onClick={() => onPageChange(currentPage + 1)}
-            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${
-              isDark
-                ? "border-white/10 text-slate-300 hover:bg-white/10"
-                : "border-slate-200 text-slate-700 hover:bg-slate-50"
-            }`}
+            className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50 ${isDark
+              ? "border-white/10 text-slate-300 hover:bg-white/10"
+              : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
           >
             Next
             <ChevronRight size={16} aria-hidden="true" />
@@ -388,6 +399,7 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -543,12 +555,12 @@ export default function AdminUsers() {
         currentUsers.map((currentUser) =>
           currentUser.id === data.user.id
             ? {
-                ...currentUser,
-                ...data.user,
-                presence_status: nextDisabledStatus
-                  ? "inactive"
-                  : currentUser.presence_status || "inactive",
-              }
+              ...currentUser,
+              ...data.user,
+              presence_status: nextDisabledStatus
+                ? "inactive"
+                : currentUser.presence_status || "inactive",
+            }
             : currentUser
         )
       );
@@ -558,8 +570,7 @@ export default function AdminUsers() {
         title: nextDisabledStatus ? "User disabled" : "User reactivated",
         message:
           data.message ||
-          `The user account has been ${
-            nextDisabledStatus ? "disabled" : "reactivated"
+          `The user account has been ${nextDisabledStatus ? "disabled" : "reactivated"
           }.`,
       });
     } catch (error) {
@@ -573,16 +584,64 @@ export default function AdminUsers() {
     }
   }
 
+  async function handleDeleteUser(user) {
+    const firstConfirmation = window.confirm(
+      `Are you sure you want to permanently delete ${user.full_name || "this user"}?`
+    );
+
+    if (!firstConfirmation) {
+      return;
+    }
+
+    const secondConfirmation = window.confirm(
+      "This will remove the user from User Management, delete their login account, remove their presence record, and remove them from privileged users if applicable. Historical ticket records will be preserved. Continue?"
+    );
+
+    if (!secondConfirmation) {
+      return;
+    }
+
+    try {
+      setDeletingUserId(user.id);
+
+      const data = await apiFetch("/api/admin/delete-user", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: user.id,
+        }),
+      });
+
+      setUsers((currentUsers) =>
+        currentUsers.filter((currentUser) => currentUser.id !== user.id)
+      );
+
+      showToast({
+        type: data.authDeleteWarning ? "warning" : "success",
+        title: data.authDeleteWarning ? "User removed with warning" : "User deleted",
+        message:
+          data.message ||
+          "The user has been deleted from the system successfully.",
+      });
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Could not delete user",
+        message: error.message || "Failed to delete the user account.",
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
+  }
+
   return (
     <DashboardShell>
       <div className="mb-6">
         <Link
           to="/admin"
-          className={`inline-flex items-center gap-2 text-sm font-bold ${
-            isDark
-              ? "text-slate-300 hover:text-white"
-              : "text-slate-600 hover:text-mof-primary"
-          }`}
+          className={`inline-flex items-center gap-2 text-sm font-bold ${isDark
+            ? "text-slate-300 hover:text-white"
+            : "text-slate-600 hover:text-mof-primary"
+            }`}
         >
           <ArrowLeft size={17} aria-hidden="true" />
           Back to admin dashboard
@@ -590,34 +649,30 @@ export default function AdminUsers() {
       </div>
 
       <section
-        className={`relative overflow-hidden rounded-3xl p-6 shadow-sm sm:p-8 ${
-          isDark
-            ? "border border-white/10 bg-[#3e5048]"
-            : "border border-slate-200 bg-white"
-        }`}
+        className={`relative overflow-hidden rounded-3xl p-6 shadow-sm sm:p-8 ${isDark
+          ? "border border-white/10 bg-[#3e5048]"
+          : "border border-slate-200 bg-white"
+          }`}
       >
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p
-              className={`text-xs font-black uppercase tracking-[0.22em] ${
-                isDark ? "text-white/80" : "text-mof-primary"
-              }`}
+              className={`text-xs font-black uppercase tracking-[0.22em] ${isDark ? "text-white/80" : "text-mof-primary"
+                }`}
             >
               Admin Operations
             </p>
 
             <h1
-              className={`mt-4 text-3xl font-black tracking-tight sm:text-4xl ${
-                isDark ? "text-white" : "text-slate-950"
-              }`}
+              className={`mt-4 text-3xl font-black tracking-tight sm:text-4xl ${isDark ? "text-white" : "text-slate-950"
+                }`}
             >
               User Management
             </h1>
 
             <p
-              className={`mt-3 max-w-2xl text-sm font-semibold leading-6 ${
-                isDark ? "text-white" : "text-slate-700"
-              }`}
+              className={`mt-3 max-w-2xl text-sm font-semibold leading-6 ${isDark ? "text-white" : "text-slate-700"
+                }`}
             >
               View registered staff, interns, NSP users, assigned routes, login
               presence, and account access status.
@@ -625,9 +680,8 @@ export default function AdminUsers() {
           </div>
 
           <div
-            className={`rounded-2xl px-5 py-4 ${
-              isDark ? "bg-white/10 text-white" : "bg-emerald-50 text-mof-primary"
-            }`}
+            className={`rounded-2xl px-5 py-4 ${isDark ? "bg-white/10 text-white" : "bg-emerald-50 text-mof-primary"
+              }`}
           >
             <div className="flex items-center gap-3">
               <UsersRound size={22} aria-hidden="true" />
@@ -653,36 +707,32 @@ export default function AdminUsers() {
         ].map(([label, value, Icon]) => (
           <div
             key={label}
-            className={`rounded-3xl p-5 ${
-              isDark
-                ? "border border-white/10 bg-slate-900"
-                : "border border-slate-200 bg-white"
-            }`}
+            className={`rounded-3xl p-5 ${isDark
+              ? "border border-white/10 bg-slate-900"
+              : "border border-slate-200 bg-white"
+              }`}
           >
             <div className="flex items-center gap-3">
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                  isDark
-                    ? "bg-white/10 text-emerald-200"
-                    : "bg-emerald-50 text-mof-primary"
-                }`}
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${isDark
+                  ? "bg-white/10 text-emerald-200"
+                  : "bg-emerald-50 text-mof-primary"
+                  }`}
               >
                 <Icon size={22} aria-hidden="true" />
               </div>
 
               <div>
                 <p
-                  className={`text-xs font-bold uppercase tracking-wider ${
-                    isDark ? "text-slate-400" : "text-slate-500"
-                  }`}
+                  className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"
+                    }`}
                 >
                   {label}
                 </p>
 
                 <p
-                  className={`mt-1 text-2xl font-black ${
-                    isDark ? "text-white" : "text-slate-950"
-                  }`}
+                  className={`mt-1 text-2xl font-black ${isDark ? "text-white" : "text-slate-950"
+                    }`}
                 >
                   {isLoading ? "..." : value}
                 </p>
@@ -693,19 +743,17 @@ export default function AdminUsers() {
       </section>
 
       <section
-        className={`mt-6 rounded-3xl p-4 ${
-          isDark
-            ? "border border-white/10 bg-slate-900"
-            : "border border-slate-200 bg-white"
-        }`}
+        className={`mt-6 rounded-3xl p-4 ${isDark
+          ? "border border-white/10 bg-slate-900"
+          : "border border-slate-200 bg-white"
+          }`}
       >
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
           <label
-            className={`flex min-h-11 w-full items-center gap-3 rounded-xl border px-4 ${
-              isDark
-                ? "border-white/10 bg-white/5 text-slate-300"
-                : "border-slate-200 bg-slate-50 text-slate-600"
-            }`}
+            className={`flex min-h-11 w-full items-center gap-3 rounded-xl border px-4 ${isDark
+              ? "border-white/10 bg-white/5 text-slate-300"
+              : "border-slate-200 bg-slate-50 text-slate-600"
+              }`}
           >
             <Search size={17} aria-hidden="true" />
 
@@ -729,15 +777,14 @@ export default function AdminUsers() {
                 key={value}
                 type="button"
                 onClick={() => handleRoleFilterChange(value)}
-                className={`rounded-xl px-4 py-2 text-sm font-black ${
-                  roleFilter === value
-                    ? isDark
-                      ? "bg-white text-slate-950"
-                      : "bg-mof-primary text-white"
-                    : isDark
-                      ? "bg-white/5 text-slate-300 hover:bg-white/10"
-                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
+                className={`rounded-xl px-4 py-2 text-sm font-black ${roleFilter === value
+                  ? isDark
+                    ? "bg-white text-slate-950"
+                    : "bg-mof-primary text-white"
+                  : isDark
+                    ? "bg-white/5 text-slate-300 hover:bg-white/10"
+                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  }`}
               >
                 {label}
               </button>
@@ -755,15 +802,14 @@ export default function AdminUsers() {
                 key={value}
                 type="button"
                 onClick={() => handleStatusFilterChange(value)}
-                className={`rounded-xl px-4 py-2 text-sm font-black ${
-                  statusFilter === value
-                    ? isDark
-                      ? "bg-white text-slate-950"
-                      : "bg-mof-primary text-white"
-                    : isDark
-                      ? "bg-white/5 text-slate-300 hover:bg-white/10"
-                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                }`}
+                className={`rounded-xl px-4 py-2 text-sm font-black ${statusFilter === value
+                  ? isDark
+                    ? "bg-white text-slate-950"
+                    : "bg-mof-primary text-white"
+                  : isDark
+                    ? "bg-white/5 text-slate-300 hover:bg-white/10"
+                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  }`}
               >
                 {label}
               </button>
@@ -774,11 +820,10 @@ export default function AdminUsers() {
 
       {isLoading && (
         <section
-          className={`mt-6 rounded-3xl p-6 ${
-            isDark
-              ? "border border-white/10 bg-slate-900 text-slate-300"
-              : "border border-slate-200 bg-white text-slate-600"
-          }`}
+          className={`mt-6 rounded-3xl p-6 ${isDark
+            ? "border border-white/10 bg-slate-900 text-slate-300"
+            : "border border-slate-200 bg-white text-slate-600"
+            }`}
         >
           <p className="text-sm font-bold">Loading users...</p>
         </section>
@@ -786,11 +831,10 @@ export default function AdminUsers() {
 
       {!isLoading && filteredUsers.length === 0 && (
         <section
-          className={`mt-6 rounded-3xl p-6 text-center ${
-            isDark
-              ? "border border-white/10 bg-slate-900 text-slate-300"
-              : "border border-slate-200 bg-white text-slate-600"
-          }`}
+          className={`mt-6 rounded-3xl p-6 text-center ${isDark
+            ? "border border-white/10 bg-slate-900 text-slate-300"
+            : "border border-slate-200 bg-white text-slate-600"
+            }`}
         >
           <p className="font-black">No users found.</p>
         </section>
@@ -805,7 +849,9 @@ export default function AdminUsers() {
                 user={user}
                 isDark={isDark}
                 onToggleStatus={handleToggleUserStatus}
+                onDeleteUser={handleDeleteUser}
                 isUpdating={updatingUserId === user.id}
+                isDeleting={deletingUserId === user.id}
               />
             ))}
           </section>
