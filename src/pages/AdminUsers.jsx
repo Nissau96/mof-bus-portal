@@ -16,6 +16,7 @@ import {
   Trash2,
   UserRound,
   UsersRound,
+  X,
 } from "lucide-react";
 
 import DashboardShell from "../components/dashboard/DashboardShell";
@@ -388,6 +389,114 @@ function PaginationControls({
   );
 }
 
+function DeleteUserDialog({
+  user,
+  isDark,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}) {
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-user-title"
+        className={`w-full max-w-md rounded-3xl p-6 shadow-2xl ${
+          isDark
+            ? "border border-white/10 bg-slate-900 text-white"
+            : "border border-slate-200 bg-white text-slate-950"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+              isDark ? "bg-red-500/10 text-red-200" : "bg-red-50 text-red-700"
+            }`}
+          >
+            <Trash2 size={22} aria-hidden="true" />
+          </div>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isDark
+                ? "text-slate-300 hover:bg-white/10 hover:text-white"
+                : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"
+            }`}
+            aria-label="Close delete confirmation"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+
+        <h2 id="delete-user-title" className="mt-5 text-2xl font-black">
+          Delete user?
+        </h2>
+
+        <p
+          className={`mt-3 text-sm font-semibold leading-6 ${
+            isDark ? "text-slate-300" : "text-slate-600"
+          }`}
+        >
+          You are about to delete{" "}
+          <span className={isDark ? "text-white" : "text-slate-950"}>
+            {user.full_name || "this user"}
+          </span>
+          . This will remove the user from User Management, delete their login
+          account, remove their presence record, and remove them from privileged
+          users if applicable.
+        </p>
+
+        <div
+          className={`mt-5 rounded-2xl p-4 text-sm font-bold ${
+            isDark
+              ? "bg-red-500/10 text-red-200"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          Historical ticket and audit records will be preserved.
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isDark
+                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? (
+              <span className="loading loading-spinner loading-sm" aria-hidden="true" />
+            ) : (
+              <Trash2 size={17} aria-hidden="true" />
+            )}
+            {isDeleting ? "Deleting..." : "Yes, Delete User"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const { isDark } = useTheme();
   const { showToast } = useToast();
@@ -400,6 +509,7 @@ export default function AdminUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [selectedDeleteUser, setSelectedDeleteUser] = useState(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -584,57 +694,68 @@ export default function AdminUsers() {
     }
   }
 
-  async function handleDeleteUser(user) {
-    const firstConfirmation = window.confirm(
-      `Are you sure you want to permanently delete ${user.full_name || "this user"}?`
-    );
+  function handleDeleteUser(user) {
+  setSelectedDeleteUser(user);
+}
 
-    if (!firstConfirmation) {
-      return;
-    }
-
-    const secondConfirmation = window.confirm(
-      "This will remove the user from User Management, delete their login account, remove their presence record, and remove them from privileged users if applicable. Historical ticket records will be preserved. Continue?"
-    );
-
-    if (!secondConfirmation) {
-      return;
-    }
-
-    try {
-      setDeletingUserId(user.id);
-
-      const data = await apiFetch("/api/admin/delete-user", {
-        method: "POST",
-        body: JSON.stringify({
-          userId: user.id,
-        }),
-      });
-
-      setUsers((currentUsers) =>
-        currentUsers.filter((currentUser) => currentUser.id !== user.id)
-      );
-
-      showToast({
-        type: data.authDeleteWarning ? "warning" : "success",
-        title: data.authDeleteWarning ? "User removed with warning" : "User deleted",
-        message:
-          data.message ||
-          "The user has been deleted from the system successfully.",
-      });
-    } catch (error) {
-      showToast({
-        type: "error",
-        title: "Could not delete user",
-        message: error.message || "Failed to delete the user account.",
-      });
-    } finally {
-      setDeletingUserId(null);
-    }
+function handleCancelDeleteUser() {
+  if (deletingUserId) {
+    return;
   }
+
+  setSelectedDeleteUser(null);
+}
+
+async function handleConfirmDeleteUser() {
+  if (!selectedDeleteUser) {
+    return;
+  }
+
+  try {
+    setDeletingUserId(selectedDeleteUser.id);
+
+    const data = await apiFetch("/api/admin/delete-user", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: selectedDeleteUser.id,
+      }),
+    });
+
+    setUsers((currentUsers) =>
+      currentUsers.filter(
+        (currentUser) => currentUser.id !== selectedDeleteUser.id
+      )
+    );
+
+    showToast({
+      type: data.authDeleteWarning ? "warning" : "success",
+      title: data.authDeleteWarning ? "User removed with warning" : "User deleted",
+      message:
+        data.message ||
+        "The user has been deleted from the system successfully.",
+    });
+
+    setSelectedDeleteUser(null);
+  } catch (error) {
+    showToast({
+      type: "error",
+      title: "Could not delete user",
+      message: error.message || "Failed to delete the user account.",
+    });
+  } finally {
+    setDeletingUserId(null);
+  }
+}
 
   return (
     <DashboardShell>
+      <DeleteUserDialog
+  user={selectedDeleteUser}
+  isDark={isDark}
+  isDeleting={Boolean(deletingUserId)}
+  onCancel={handleCancelDeleteUser}
+  onConfirm={handleConfirmDeleteUser}
+/>
       <div className="mb-6">
         <Link
           to="/admin"
