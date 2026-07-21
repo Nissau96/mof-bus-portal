@@ -346,15 +346,22 @@ export default async function handler(req, res) {
           });
 
         if (rollbackAuthError) {
-          void supabase.from("audit_logs").insert({
-            user_id: user.id,
-            action: "profile_email_restore_failed",
-            details: {
-              previous_email: previousEmail,
-              attempted_email: cleanedEmail,
-              error: rollbackAuthError.message,
-            },
-          });
+          try {
+            await supabase.from("audit_logs").insert({
+              user_id: user.id,
+              action: "profile_email_restore_failed",
+              details: {
+                previous_email: previousEmail,
+                attempted_email: cleanedEmail,
+                error: rollbackAuthError.message,
+              },
+            });
+          } catch (auditInsertError) {
+            console.error(
+              "Failed to record profile email restore audit entry:",
+              auditInsertError
+            );
+          }
         }
       }
 
