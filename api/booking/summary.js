@@ -2,12 +2,29 @@ import { getSupabaseAdmin } from "../../server/_utils/supabaseAdmin.js";
 import { getAuthUser } from "../../server/_utils/getAuthUser.js";
 import { getBookingAvailability } from "../../server/_utils/bookingRules.js";
 
+function setNoStoreHeaders(res) {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+}
+
 /**
  * Returns today's booking summary for the authenticated user.
+ *
+ * Seat availability is hidden from non-admin users until the regular
+ * booking period begins. Admin users always receive the real seat count.
  */
 export default async function handler(req, res) {
+  setNoStoreHeaders(res);
+
   if (req.method !== "GET") {
-    return res.status(405).json({ message: "Method not allowed." });
+    return res.status(405).json({
+      message: "Method not allowed.",
+    });
   }
 
   try {
@@ -36,6 +53,12 @@ export default async function handler(req, res) {
     if (!profile) {
       return res.status(404).json({
         message: "User profile was not found.",
+      });
+    }
+
+    if (profile.is_disabled) {
+      return res.status(403).json({
+        message: "Your account has been disabled.",
       });
     }
 
@@ -68,15 +91,42 @@ export default async function handler(req, res) {
       });
     }
 
+    const actualConfirmedCount = confirmedCount || 0;
+
+    const actualAvailableSeats = Math.max(
+      availability.capacity - actualConfirmedCount,
+      0
+    );
+
+    const isAdmin = profile.role === "admin";
+
+    const regularBookingHasStarted =
+      availability.bookingWindowType === "regular";
+
+    const seatAvailabilityHidden =
+      !isAdmin && !regularBookingHasStarted;
+
     return res.status(200).json({
       travelDate: availability.dateISO,
       capacity: availability.capacity,
-      confirmedCount: confirmedCount || 0,
-      availableSeats: Math.max(availability.capacity - (confirmedCount || 0), 0),
+
+      confirmedCount: isAdmin ? actualConfirmedCount : undefined,
+
+      availableSeats: seatAvailabilityHidden
+        ? null
+        : actualAvailableSeats,
+
+      seatAvailabilityHidden,
+
+      seatAvailabilityMessage: seatAvailabilityHidden
+        ? `Seat availability will be displayed when regular booking opens at ${availability.bookingOpenTimeLabel}.`
+        : null,
+
       waitingCount: waitingCount || 0,
       departureWindow: availability.departureWindow,
       bookingOpenTime: availability.bookingOpenTimeLabel,
-      privilegedBookingWindow: availability.privilegedBookingWindowLabel,
+      privilegedBookingWindow:
+        availability.privilegedBookingWindowLabel,
       bookingStatus: availability.bookingStatus,
       bookingStatusReason: availability.reason,
       canBook: availability.canBook,
