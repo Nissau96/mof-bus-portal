@@ -157,17 +157,17 @@ export default function Dashboard() {
    * - Available Seats
    */
 
-  const seatAvailabilityHidden =
-  summary?.seatAvailabilityHidden === true;
+  // const seatAvailabilityHidden =
+  // summary?.seatAvailabilityHidden === true;
 
-const availableSeatsValue = seatAvailabilityHidden
-  ? "Hidden"
-  : String(summary?.availableSeats ?? "-");
+// const availableSeatsValue = seatAvailabilityHidden
+//   ? "Hidden"
+//   : String(summary?.availableSeats ?? "-");
 
-const availableSeatsDescription = seatAvailabilityHidden
-  ? summary?.seatAvailabilityMessage ||
-    "Available seats will be shown when regular booking opens."
-  : "Current remaining capacity";
+// const availableSeatsDescription = seatAvailabilityHidden
+//   ? summary?.seatAvailabilityMessage ||
+//     "Available seats will be shown when regular booking opens."
+//   : "Current remaining capacity";
 
   const dashboardMetrics = USER_DASHBOARD_METRICS.map((metric) => {
     const isTicketMetric =
@@ -189,13 +189,12 @@ const availableSeatsDescription = seatAvailabilityHidden
     if (isAvailableSeatsMetric) {
   return {
     ...metric,
-    value: isLoading ? "Loading" : availableSeatsValue,
-    description: isLoading
-      ? "Checking current seat availability"
-      : availableSeatsDescription,
+    value: isLoading ? "Loading" : String(summary?.availableSeats ?? "-"),
+    description:
+      summary?.seatAvailabilityMessage ||
+      "Current remaining capacity",
   };
 }
-
     return metric;
   });
 

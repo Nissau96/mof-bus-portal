@@ -247,17 +247,17 @@ export default function BookTicket() {
   const travelDate = summary?.travelDate;
 
 
-  const seatAvailabilityHidden =
-    summary?.seatAvailabilityHidden === true;
+  // const seatAvailabilityHidden =
+  //   summary?.seatAvailabilityHidden === true;
 
-  const availableSeatsValue = seatAvailabilityHidden
-    ? "Hidden"
-    : String(summary?.availableSeats ?? "-");
+  // const availableSeatsValue = seatAvailabilityHidden
+  //   ? "Hidden"
+  //   : String(summary?.availableSeats ?? "-");
 
-  const availableSeatsDescription = seatAvailabilityHidden
-    ? summary?.seatAvailabilityMessage ||
-    "Available seats will be displayed when regular booking opens."
-    : "Current remaining capacity";
+  // const availableSeatsDescription = seatAvailabilityHidden
+  //   ? summary?.seatAvailabilityMessage ||
+  //   "Available seats will be displayed when regular booking opens."
+  //   : "Current remaining capacity";
 
   const summaryCards = [
     {
@@ -269,13 +269,13 @@ export default function BookTicket() {
       icon: CheckCircle2,
     },
     {
-      label: "Available Seats",
-      value: isLoading ? "Loading" : availableSeatsValue,
-      description: isLoading
-        ? "Checking current seat availability"
-        : availableSeatsDescription,
-      icon: TicketCheck,
-    },
+  label: "Available Seats",
+  value: isLoading ? "Loading" : String(summary?.availableSeats ?? "-"),
+  description:
+    summary?.seatAvailabilityMessage ||
+    "Current remaining capacity",
+  icon: TicketCheck,
+},
     {
       label: "Travel Date",
       value: formatDisplayDate(travelDate),
@@ -367,7 +367,7 @@ export default function BookTicket() {
                 Ticket Request
               </h2>
 
-              <p
+              <p 
                 className={`mt-1 text-sm leading-6 ${isDark ? "text-slate-400" : "text-slate-600"
                   }`}
               >

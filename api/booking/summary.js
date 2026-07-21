@@ -94,17 +94,19 @@ export default async function handler(req, res) {
     const actualConfirmedCount = confirmedCount || 0;
 
     const actualAvailableSeats = Math.max(
-      availability.capacity - actualConfirmedCount,
-      0
-    );
+  availability.capacity - actualConfirmedCount,
+  0
+);
 
-    const isAdmin = profile.role === "admin";
+const isAdmin = profile.role === "admin";
 
-    const regularBookingHasStarted =
-      availability.bookingWindowType === "regular";
+const regularBookingHasStarted =
+  availability.bookingWindowType === "regular";
 
-    const seatAvailabilityHidden =
-      !isAdmin && !regularBookingHasStarted;
+const displayAvailableSeats =
+  isAdmin || regularBookingHasStarted
+    ? actualAvailableSeats
+    : availability.capacity;
 
     return res.status(200).json({
       travelDate: availability.dateISO,
@@ -112,15 +114,14 @@ export default async function handler(req, res) {
 
       confirmedCount: isAdmin ? actualConfirmedCount : undefined,
 
-      availableSeats: seatAvailabilityHidden
-        ? null
-        : actualAvailableSeats,
+      availableSeats: displayAvailableSeats,
 
-      seatAvailabilityHidden,
+seatAvailabilityHidden: false,
 
-      seatAvailabilityMessage: seatAvailabilityHidden
-        ? `Seat availability will be displayed when regular booking opens at ${availability.bookingOpenTimeLabel}.`
-        : null,
+seatAvailabilityMessage:
+  !isAdmin && !regularBookingHasStarted
+    ? `Seat availability will reflect live bookings when regular booking opens at ${availability.bookingOpenTimeLabel}.`
+    : null,
 
       waitingCount: waitingCount || 0,
       departureWindow: availability.departureWindow,
