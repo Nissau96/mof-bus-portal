@@ -76,9 +76,12 @@ export default function Dashboard() {
 
   const mutedTextClass = isDark ? "text-slate-400" : "text-slate-600";
 
-  const loadDashboardData = useCallback(async () => {
+  const loadDashboardData = useCallback(
+  async ({ showLoader = true, showErrorToast = true } = {}) => {
     try {
-      setIsLoading(true);
+      if (showLoader) {
+        setIsLoading(true);
+      }
 
       const [profileData, summaryData, ticketData] = await Promise.all([
         apiFetch("/api/profile/me"),
@@ -90,25 +93,39 @@ export default function Dashboard() {
       setSummary(summaryData);
       setTicketStatus(ticketData);
     } catch (error) {
-      showToast({
-        type: "error",
-        title: "Could not load dashboard",
-        message: error.message || "Failed to load your dashboard data.",
-      });
+      if (showErrorToast) {
+        showToast({
+          type: "error",
+          title: "Could not load dashboard",
+          message: error.message || "Failed to load your dashboard data.",
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoader) {
+        setIsLoading(false);
+      }
     }
-  }, [showToast]);
+  },
+  [showToast]
+);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      loadDashboardData();
-    }, 0);
+  const timeoutId = window.setTimeout(() => {
+    loadDashboardData();
+  }, 0);
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [loadDashboardData]);
+  const intervalId = window.setInterval(() => {
+    loadDashboardData({
+      showLoader: false,
+      showErrorToast: false,
+    });
+  }, 30000);
+
+  return () => {
+    window.clearTimeout(timeoutId);
+    window.clearInterval(intervalId);
+  };
+}, [loadDashboardData]);
 
   const firstName = profile?.full_name?.split(" ")?.[0] || "User";
   const heroDate = formatHeroDate(summary?.travelDate);
@@ -139,6 +156,19 @@ export default function Dashboard() {
    * - Today’s Ticket #
    * - Available Seats
    */
+
+  const seatAvailabilityHidden =
+  summary?.seatAvailabilityHidden === true;
+
+const availableSeatsValue = seatAvailabilityHidden
+  ? "Hidden"
+  : String(summary?.availableSeats ?? "-");
+
+const availableSeatsDescription = seatAvailabilityHidden
+  ? summary?.seatAvailabilityMessage ||
+    "Available seats will be shown when regular booking opens."
+  : "Current remaining capacity";
+
   const dashboardMetrics = USER_DASHBOARD_METRICS.map((metric) => {
     const isTicketMetric =
       metric.label === "Today’s Ticket" ||
@@ -157,12 +187,14 @@ export default function Dashboard() {
     }
 
     if (isAvailableSeatsMetric) {
-      return {
-        ...metric,
-        value: isLoading ? "Loading" : String(summary?.availableSeats ?? "-"),
-        description: "Current remaining capacity",
-      };
-    }
+  return {
+    ...metric,
+    value: isLoading ? "Loading" : availableSeatsValue,
+    description: isLoading
+      ? "Checking current seat availability"
+      : availableSeatsDescription,
+  };
+}
 
     return metric;
   });
