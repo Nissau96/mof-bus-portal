@@ -149,6 +149,7 @@ The application supports role-based authentication, daily bus ticket booking, wa
 - `SUPABASE_URL` - Supabase project URL
 - `SUPABASE_ANON_KEY` - Supabase anonymous public key for server-side requests
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key for admin operations
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or prefix it with `VITE_`.
 - `POWER_AUTOMATE_EMAIL_WEBHOOK_URL` - Power Automate webhook endpoint for email notifications
 - `POWER_AUTOMATE_SHARED_SECRET` - Shared secret validated by Power Automate webhook requests
 - `ADMIN_REGISTRATION_EMAIL` - optional admin email to receive new registration notifications
@@ -210,3 +211,19 @@ For production deployment, configure the same environment variables in your host
 - `server/_utils/bookingRules.js` enforces booking windows, privileged access, and holiday closures.
 - `server/_utils/powerAutomateEmail.js` sends webhook requests to Power Automate.
 - `api/admin/[action].js` centralizes admin-only actions and enforces administrator access.
+  Update README with comprehensive project documentation
+
+- Add project overview and key features
+- Document full project structure with all directories
+- Include user and admin page mappings
+- Document booking rules and availability windows
+- Add complete API reference for all endpoints
+- List required environment variables (client and server-side)
+- Include development setup and deployment instructions
+- Add notes on important server-side utilities
+
+This provides comprehensive documentation of the MOF Bus Portal application,
+including authentication flows, booking workflows, administrative features,
+and integration details.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
