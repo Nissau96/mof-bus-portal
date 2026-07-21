@@ -176,7 +176,7 @@ If you did not make this change, please contact the system administrator immedia
  * When the email address changes:
  * - Supabase Auth is updated.
  * - The profile record is updated.
- * - A notification is sent to the new email address.
+ * - A notification attempt is made to the new email address when WHATSAPP_GROUP_LINK is configured; otherwise it is skipped.
  * - The WhatsApp group link is included when configured.
  */
 export default async function handler(req, res) {
@@ -333,16 +333,29 @@ export default async function handler(req, res) {
 
     if (updateProfileError) {
       if (emailChanged) {
-        await supabase.auth.admin.updateUserById(user.id, {
-          email: previousEmail,
-          email_confirm: true,
-          user_metadata: {
-            ...user.user_metadata,
-            full_name: existingProfile.full_name,
-            role: existingProfile.role,
-            staff_id: existingProfile.staff_id || undefined,
-          },
-        });
+        const { error: rollbackAuthError } =
+          await supabase.auth.admin.updateUserById(user.id, {
+            email: previousEmail,
+            email_confirm: true,
+            user_metadata: {
+              ...user.user_metadata,
+              full_name: existingProfile.full_name,
+              role: existingProfile.role,
+              staff_id: existingProfile.staff_id || undefined,
+            },
+          });
+
+        if (rollbackAuthError) {
+          void supabase.from("audit_logs").insert({
+            user_id: user.id,
+            action: "profile_email_restore_failed",
+            details: {
+              previous_email: previousEmail,
+              attempted_email: cleanedEmail,
+              error: rollbackAuthError.message,
+            },
+          });
+        }
       }
 
       return res.status(500).json({
